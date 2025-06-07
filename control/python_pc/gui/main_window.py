@@ -1,3 +1,12 @@
+"""
+main_window.py
+
+This file implements the main GUI window for the Modular Inverted Pendulum project.
+It provides controls for starting/stopping the simulation or hardware, selecting controllers, and enabling swing-up mode.
+The right side of the window displays real-time plots of system variables and a visualizer for the cart-pendulum system.
+The GUI communicates with simulation or hardware backends using shared variables and multiprocessing.
+"""
+
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QCheckBox, QLabel, QFrame
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QPainterPath
 from PyQt5.QtCore import QTimer, Qt, QEvent, QPointF, QRectF
@@ -13,9 +22,9 @@ class PendulumVisualizer(QWidget):
     def __init__(self, shared_vars=None):
         super().__init__()
         self.shared_vars = shared_vars  # Set once at initialization
-        self.cart_width = 60
-        self.cart_height = 30
-        self.pendulum_length = 100
+        self.cart_width = 50
+        self.cart_height = 20
+        self.pendulum_length = 80
         self.setMinimumSize(400, 200)
         
         # Visual styling
@@ -127,7 +136,7 @@ class MainWindow(QWidget):
         self.plot_data = []
 
         titles = ["Cart Position", "Pendulum Angle", "Control Output", "Loop Execution Time"]
-        ranges = [(-100, 100), (0, 2 * math.pi), (-10, 10), (0, 100)]
+        ranges = [(-100, 100), (0, 2 * math.pi), (-10, 10), (0, 0.02)]
         for title in titles:
             plot = pg.PlotWidget(title=title)
             plot.showGrid(x=True, y=True)

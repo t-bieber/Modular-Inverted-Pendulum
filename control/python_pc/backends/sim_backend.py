@@ -1,9 +1,20 @@
+"""
+sim_backend.py
+
+This file implements the simulation backend for the modular inverted pendulum project.
+It provides a physics loop that models the dynamics of a cart-pendulum system using a linearized state-space model.
+The simulation is run in its own process and updates shared variables for position, angle, control signal, and loop execution time.
+
+Credit: The equations and modeling approach used in this file are based on the University of Michigans Control Tutorials for MATLAB and Simulink:
+https://ctms.engin.umich.edu/CTMS/?example=InvertedPendulum&section=SystemModeling
+"""
+
 import time
 import math
 import multiprocessing
 import numpy as np
 
-def simulated_physics_loop(position, angle, control_signal, loop_time):
+def simulated_physics_loop(position, angle, control_signal):
     # System parameters (unchanged)
     m_cart = 0.5
     m_pend = 0.2
@@ -36,8 +47,8 @@ def simulated_physics_loop(position, angle, control_signal, loop_time):
     ])
     
     # Initial state [x, x_dot, θ-π, θ_dot]
-    rand_theta_offset = np.random.uniform(-1, 1)  # Small random offset for initial angle
-    rand_theta_dot_offset = np.random.uniform(-0.5, 0.5)  # Small random offset for initial position
+    rand_theta_offset = np.random.uniform(-0.35, 0.35)        # Small random offset for initial angle
+    rand_theta_dot_offset = np.random.uniform(-0.05, 0.05)    # Small random offset for initial velocity
     state = np.array([[0.0], [0.0], [0 + rand_theta_offset], [0 + rand_theta_dot_offset]])
 
     while True:
@@ -54,7 +65,6 @@ def simulated_physics_loop(position, angle, control_signal, loop_time):
         # Update shared variables
         angle.value = wrapped_angle  # Wrapped angle [0, 2π] (0=down, π=up)
         position.value = state[0][0]
-        loop_time.value = (time.time() - start) * 1000
 
         # Accurate timing
         elapsed = time.time() - start
@@ -69,7 +79,6 @@ def start_simulation_backend(shared_vars):
             shared_vars["position"],
             shared_vars["angle"],
             shared_vars["control_signal"],
-            shared_vars["loop_time"]
         )
     )
     p.start()

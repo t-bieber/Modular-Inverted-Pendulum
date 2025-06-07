@@ -1,7 +1,13 @@
-import sys
-import time
+"""
+main.py
+
+Run this file to start the application. This will run the GUI, which contains the rest of the application logic.
+This project is maintained on GitHub: https://github.com/t-bieber/Modular-Inverted-Pendulum
+
+Author: Tom Bieber
+"""
+
 import multiprocessing
-from backends.sim_backend import start_simulation_backend
 from gui.main_window import run_gui
 
 def main():
