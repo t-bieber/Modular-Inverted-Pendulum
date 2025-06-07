@@ -1,31 +1,66 @@
-# backends/sim_backend.py
-
 import time
 import math
 import multiprocessing
+import numpy as np
 
 def simulated_physics_loop(position, angle, control_signal, loop_time):
-    theta = 0.2  # initial pendulum angle (radians)
-    x = 0.0
+    # System parameters (unchanged)
+    m_cart = 0.5
+    m_pend = 0.2
+    b = 0.1
+    l_pend = 0.3
+    I_pendulum = 0.006
+    g = 9.81
     dt = 0.01
+    
+    # Linearized state-space model around θ=π (upright position)
+    # State vector: [x, x_dot, θ-π, θ_dot]
+    
+    # Common denominator term
+    denom = I_pendulum*(m_cart + m_pend) + m_cart*m_pend*l_pend**2
+    
+    # State matrix (A)
+    A = np.array([
+        [0, 1, 0, 0],
+        [0, -(I_pendulum + m_pend*l_pend**2)*b/denom, m_pend**2*g*l_pend**2/denom, 0],
+        [0, 0, 0, 1],
+        [0, -m_pend*l_pend*b/denom, m_pend*g*l_pend*(m_cart + m_pend)/denom, 0]
+    ])
+    
+    # Input matrix (B)
+    B = np.array([
+        [0],
+        [(I_pendulum + m_pend*l_pend**2)/denom],
+        [0],
+        [m_pend*l_pend/denom]
+    ])
+    
+    # Initial state [x, x_dot, θ-π, θ_dot]
+    rand_theta_offset = np.random.uniform(-1, 1)  # Small random offset for initial angle
+    rand_theta_dot_offset = np.random.uniform(-0.5, 0.5)  # Small random offset for initial position
+    state = np.array([[0.0], [0.0], [0 + rand_theta_offset], [0 + rand_theta_dot_offset]])
 
     while True:
         start = time.time()
-
         u = control_signal.value
 
-        # Simple model: theta'' = -g*sin(theta) + u
-        theta_dot = -9.81 * math.sin(theta) + u
-        x_dot = u
+        # State-space update (Euler discretization)
+        state = state + (A @ state + B * u) * dt
 
-        theta += theta_dot * dt
-        x += x_dot * dt
-
-        angle.value = theta
-        position.value = x
+        # Convert to absolute angle and wrap to [0, 2π]
+        absolute_angle = state[2] + math.pi
+        wrapped_angle = absolute_angle % (2 * math.pi)
+        
+        # Update shared variables
+        angle.value = wrapped_angle  # Wrapped angle [0, 2π] (0=down, π=up)
+        position.value = state[0][0]
         loop_time.value = (time.time() - start) * 1000
 
-        time.sleep(dt)
+        # Accurate timing
+        elapsed = time.time() - start
+        remaining_time = dt - elapsed
+        if remaining_time > 0:
+            time.sleep(remaining_time)
 
 def start_simulation_backend(shared_vars):
     p = multiprocessing.Process(
