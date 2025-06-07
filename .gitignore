@@ -1,5 +1,2 @@
 /.venv
-control/python_pc/backends/__pycache__/*
-control/python_pc/controllers/__pycache__/*
-control/python_pc/gui/__pycache__/*
-control/python_pc/utils/__pycache__/*
+/pycache/*
