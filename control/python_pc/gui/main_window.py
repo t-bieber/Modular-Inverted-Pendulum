@@ -95,6 +95,11 @@ class MainWindow(QWidget):
 
         self.shared_vars = None
         self.sim_proc = None
+        self.controller_proc = None
+        self.swingup_proc = None
+        self.controller_start_func = None
+        self.controller_param_values = None
+        self.swingup_timer = None
 
         # === Master Layout ===
         master_layout = QHBoxLayout()
@@ -137,6 +142,20 @@ class MainWindow(QWidget):
         # Swing-up toggle
         self.swingup_checkbox = QCheckBox("Enable Swing-Up")
         controls_layout.addWidget(self.swingup_checkbox)
+
+        self.catch_angle_field = QDoubleSpinBox()
+        self.catch_angle_field.setDecimals(3)
+        self.catch_angle_field.setRange(0.0, math.pi)
+        self.catch_angle_field.setValue(0.1)
+        controls_layout.addWidget(QLabel("Catch Angle (rad):"))
+        controls_layout.addWidget(self.catch_angle_field)
+
+        self.catch_momentum_field = QDoubleSpinBox()
+        self.catch_momentum_field.setDecimals(3)
+        self.catch_momentum_field.setRange(0.0, 10.0)
+        self.catch_momentum_field.setValue(0.5)
+        controls_layout.addWidget(QLabel("Catch Momentum (rad/s):"))
+        controls_layout.addWidget(self.catch_momentum_field)
 
         # Spacer
         controls_layout.addStretch()
@@ -291,6 +310,16 @@ class MainWindow(QWidget):
 
         # update visualizer
         self.visualizer.update()
+
+    def check_swingup_completion(self):
+        if self.swingup_proc and not self.swingup_proc.is_alive():
+            self.swingup_timer.stop()
+            self.swingup_proc.join()
+            self.swingup_proc = None
+            if self.controller_start_func:
+                self.controller_proc = self.controller_start_func(
+                    self.shared_vars, *self.controller_param_values.values()
+                )
     
     def start_system(self):
         # === System selection ===
@@ -337,15 +366,27 @@ class MainWindow(QWidget):
         param_values = self.get_controller_param_values()
 
         try:
-            # Dynamically import the module: controllers.pid_controller
             controller_module = importlib.import_module(f"controllers.{controller_name}")
-
-            # Start function must follow naming: start_<controllername>
             start_func_name = f"start_{controller_name}"
             start_func = getattr(controller_module, start_func_name)
 
-            # Call with shared_vars and unpacked param values
-            self.controller_proc = start_func(self.shared_vars, *param_values.values())
+            if self.swingup_checkbox.isChecked():
+                from controllers.__energy_swingup import start_energy_swingup
+
+                self.controller_start_func = start_func
+                self.controller_param_values = param_values
+                catch_angle = self.catch_angle_field.value()
+                catch_momentum = self.catch_momentum_field.value()
+
+                self.swingup_proc = start_energy_swingup(
+                    self.shared_vars, catch_angle, catch_momentum
+                )
+                self.swingup_timer = QTimer()
+                self.swingup_timer.setInterval(50)
+                self.swingup_timer.timeout.connect(self.check_swingup_completion)
+                self.swingup_timer.start()
+            else:
+                self.controller_proc = start_func(self.shared_vars, *param_values.values())
 
         except Exception as e:
             print(f"[ERROR] Failed to start controller '{controller_name}': {e}")
@@ -354,8 +395,14 @@ class MainWindow(QWidget):
     def stop_system(self):
         if self.sim_proc and self.sim_proc.is_alive():
             print("Stopping simulation...")
-            self.controller_proc.terminate()
-            self.controller_proc.join()
+            if self.controller_proc and self.controller_proc.is_alive():
+                self.controller_proc.terminate()
+                self.controller_proc.join()
+            if self.swingup_proc and self.swingup_proc.is_alive():
+                self.swingup_proc.terminate()
+                self.swingup_proc.join()
+            if self.swingup_timer:
+                self.swingup_timer.stop()
             self.sim_proc.terminate()
             self.sim_proc.join()
             self.sim_proc = None
