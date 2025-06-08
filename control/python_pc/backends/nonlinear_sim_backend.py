@@ -26,8 +26,8 @@ def nonlinear_physics_loop(position, angle, control_signal):
     # Initial state: x, x_dot, theta, theta_dot
     x = 0.0
     x_dot = 0.0
-    theta = 0 + np.random.uniform(-0.2, 0.2)  # upright + offset
-    theta_dot = 0 + np.random.uniform(-0.1, 0.1)
+    theta = math.pi + np.random.uniform(-0.05, 0.05)  # upright + offset
+    theta_dot = 0 # + np.random.uniform(-0.1, 0.1)
 
     while True:
         start_time = time.perf_counter()
