@@ -107,7 +107,6 @@ class MainWindow(QWidget):
             "background-color: #003300; border-radius: 7px;"
         )
 
-
         # === Master Layout ===
         master_layout = QHBoxLayout()
         self.setLayout(master_layout)
@@ -153,14 +152,14 @@ class MainWindow(QWidget):
         self.catch_angle_field = QDoubleSpinBox()
         self.catch_angle_field.setDecimals(3)
         self.catch_angle_field.setRange(0.0, math.pi)
-        self.catch_angle_field.setValue(0.1)
+        self.catch_angle_field.setValue(0.2)
         controls_layout.addWidget(QLabel("Catch Angle (rad):"))
         controls_layout.addWidget(self.catch_angle_field)
 
         self.catch_momentum_field = QDoubleSpinBox()
         self.catch_momentum_field.setDecimals(3)
         self.catch_momentum_field.setRange(0.0, 10.0)
-        self.catch_momentum_field.setValue(0.5)
+        self.catch_momentum_field.setValue(0.2)
         controls_layout.addWidget(QLabel("Catch Momentum (rad/s):"))
         controls_layout.addWidget(self.catch_momentum_field)
 
@@ -175,7 +174,6 @@ class MainWindow(QWidget):
         controls_layout.addWidget(self.swingup_led)
         controls_layout.addWidget(QLabel("Controller Active:"))
         controls_layout.addWidget(self.controller_led)
-
 
         # Spacer
         controls_layout.addStretch()
@@ -342,7 +340,6 @@ class MainWindow(QWidget):
                     self.shared_vars, *self.controller_param_values.values()
                 )
                 self.controller_led.setStyleSheet(self.led_style(True))
-
     
     def start_system(self):
         # === System selection ===
@@ -415,7 +412,6 @@ class MainWindow(QWidget):
                 self.controller_led.setStyleSheet(self.led_style(True))
                 self.swingup_led.setStyleSheet(self.led_style(False))
 
-
         except Exception as e:
             print(f"[ERROR] Failed to start controller '{controller_name}': {e}")
 
@@ -433,7 +429,6 @@ class MainWindow(QWidget):
                 self.swingup_timer.stop()
             self.controller_led.setStyleSheet(self.led_style(False))
             self.swingup_led.setStyleSheet(self.led_style(False))
-
             self.sim_proc.terminate()
             self.sim_proc.join()
             self.sim_proc = None

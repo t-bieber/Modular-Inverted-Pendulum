@@ -2,10 +2,10 @@
 __energy_swingup.py
 
 Energy based swing-up controller used as a pre-stage before stabilizing
-controllers. The controller increases the pendulum's energy until the
-angle and angular velocity fall below user defined thresholds. During
-the swing-up the cart is kept within ±1 meter of the center to avoid
-excessive travel.
+controllers. The controller increases the pendulum's energy while
+keeping the cart within ±1 m of the centre.  Once the pendulum is within
+the user defined ``catch_angle`` and ``catch_momentum`` thresholds the
+process terminates so that a stabilizing controller can take over.
 """
 #/VARS
 #/Catch angle: float
@@ -18,7 +18,7 @@ import multiprocessing
 
 
 def energy_swingup(position, angle, control_signal, loop_time,
-                   catch_angle=0.1, catch_momentum=0.5,
+                   catch_angle=0.2, catch_momentum=0.2,
                    pos_limit=1.0):
     """Swing the pendulum up using an energy based approach while keeping the
     cart within ``pos_limit`` meters of the center."""
@@ -30,6 +30,8 @@ def energy_swingup(position, angle, control_signal, loop_time,
     dt = 0.01
     prev_angle = angle.value
     prev_pos = position.value
+    stable_steps = 20
+    stable_count = 0
 
     while True:
         start = time.perf_counter()
@@ -39,7 +41,6 @@ def energy_swingup(position, angle, control_signal, loop_time,
         x = position.value
         x_dot = (position.value - prev_pos) / dt
         prev_pos = position.value
-
 
         # Mechanical energy relative to the upright position
         potential = m * g * l * (1 - math.cos(theta))
@@ -53,15 +54,21 @@ def energy_swingup(position, angle, control_signal, loop_time,
             u += -k_pos * (x - pos_limit) - 2.0 * x_dot
         elif x < -pos_limit:
             u += -k_pos * (x + pos_limit) - 2.0 * x_dot
-
+            
         u = max(min(u, 10.0), -10.0)
         control_signal.value = u
 
         loop_time.value = time.perf_counter() - start
 
-        if abs(theta) < catch_angle and abs(theta_dot) < catch_momentum:
-            control_signal.value = 0.0
-            break
+        if (abs(theta) < catch_angle and
+                abs(theta_dot) < catch_momentum and
+                abs(x) <= pos_limit):
+            stable_count += 1
+            if stable_count >= stable_steps:
+                control_signal.value = 0.0
+                break
+        else:
+            stable_count = 0
         time.sleep(max(0, dt - loop_time.value))
 
 
@@ -70,7 +77,6 @@ def start_energy_swingup(shared_vars, catch_angle, catch_momentum):
         target=energy_swingup,
         args=(
             shared_vars["position"],
-
             shared_vars["angle"],
             shared_vars["control_signal"],
             shared_vars["loop_time"],
