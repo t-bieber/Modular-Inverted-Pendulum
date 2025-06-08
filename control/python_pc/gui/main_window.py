@@ -127,9 +127,9 @@ class MainWindow(QWidget):
         controls_layout.addWidget(self.start_button)
         controls_layout.addWidget(self.stop_button)
         self.start_button.clicked.connect(self.start_system)
-        self.stop_button.clicked.connect(self.stop_system)
+        self.catch_angle_field.setValue(0.2)
 
-        # Controller Selector (Dynamic)
+        self.catch_momentum_field.setValue(0.2)
         self.controller_dropdown = QComboBox()
         self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
         controls_layout.addWidget(QLabel("Controller:"))
