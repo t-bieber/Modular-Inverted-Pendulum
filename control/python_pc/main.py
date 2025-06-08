@@ -11,5 +11,4 @@ if __name__ == "__main__":
     import multiprocessing
     from gui.main_window import run_gui
     multiprocessing.set_start_method("spawn")  # Good practice on Windows/macOS
-    from gui.main_window import run_gui
     run_gui()
