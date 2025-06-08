@@ -54,6 +54,7 @@ def energy_swingup(position, angle, control_signal, loop_time,
             u += -k_pos * (x - pos_limit) - 2.0 * x_dot
         elif x < -pos_limit:
             u += -k_pos * (x + pos_limit) - 2.0 * x_dot
+            
         u = max(min(u, 10.0), -10.0)
         control_signal.value = u
 

@@ -1,11 +1,8 @@
 """
-nonlinear_backend.py
+nonlinear_sim_backend.py
 
 Simulates the full nonlinear dynamics of the cart-pendulum system.
 Unlike the linearized model, this version captures behavior at large angles and swing-up.
-
-Based on equations from:
-https://ctms.engin.umich.edu/CTMS/?example=InvertedPendulum&section=SystemModeling
 
 This backend runs in its own process and updates shared multiprocessing variables.
 """

@@ -1,5 +1,5 @@
 """
-sim_backend.py
+linear_sim_backend.py
 
 This file implements the simulation backend for the modular inverted pendulum project.
 It provides a physics loop that models the dynamics of a cart-pendulum system using a linearized state-space model.
