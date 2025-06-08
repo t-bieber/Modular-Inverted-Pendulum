@@ -7,14 +7,9 @@ This project is maintained on GitHub: https://github.com/t-bieber/Modular-Invert
 Author: Tom Bieber
 """
 
-import multiprocessing
-from gui.main_window import run_gui
-
-def main():
-    multiprocessing.set_start_method("spawn")  # Required on Windows/macOS
-
-    # Launch GUI and pass shared_vars
-    run_gui()
-
 if __name__ == "__main__":
-    main()
+    import multiprocessing
+    from gui.main_window import run_gui
+    multiprocessing.set_start_method("spawn")  # Good practice on Windows/macOS
+    from gui.main_window import run_gui
+    run_gui()

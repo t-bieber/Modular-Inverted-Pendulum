@@ -72,7 +72,7 @@ def simulated_physics_loop(position, angle, control_signal):
         if remaining_time > 0:
             time.sleep(remaining_time)
 
-def start_simulation_backend(shared_vars):
+def start_linear_simulation_backend(shared_vars):
     p = multiprocessing.Process(
         target=simulated_physics_loop,
         args=(

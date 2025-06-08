@@ -7,6 +7,11 @@ It runs in its own process and updates the shared control signal variable.
 
 Hint: The simulation model can be stabilized sufficiently using Kp = 20.0, Ki = 0.0, Kd = 1.0.
 """
+#/VARS
+#/Kp: float
+#/Ki: float
+#/Kd: float
+#/ENDVARS
 
 import time
 import math
@@ -25,7 +30,7 @@ def pid_controller(angle, control_signal, loop_time, Kp=1.0, Ki=0.0, Kd=0.0):
         integral += error * dt
         derivative = (error - prev_error) / dt
         output = Kp * error + Ki * integral + Kd * derivative
-        control_signal.value = output   # Update shared control signal variable
+        control_signal.value = output  # Update shared control signal variable
         prev_error = error
         elapsed = time.perf_counter() - start_time
         loop_time.value = elapsed     # Update shared loop time variable

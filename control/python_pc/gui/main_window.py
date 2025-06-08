@@ -7,16 +7,17 @@ The right side of the window displays real-time plots of system variables and a 
 The GUI communicates with simulation or hardware backends using shared variables and multiprocessing.
 """
 
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QCheckBox, QLabel, QFrame
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QCheckBox, QLabel, QLineEdit, QFormLayout, QGroupBox, QSpinBox, QDoubleSpinBox
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QPainterPath
 from PyQt5.QtCore import QTimer, Qt, QEvent, QPointF, QRectF
 import pyqtgraph as pg
+import os
+import importlib
 import sys
-import time
 import math
 import multiprocessing
-from backends.sim_backend import start_simulation_backend
-from controllers.pid_controller import start_pid_controller
+from backends.linear_sim_backend import start_linear_simulation_backend
+from backends.nonlinear_sim_backend import start_nonlinear_simulation_backend
 
 class PendulumVisualizer(QWidget):
     def __init__(self, shared_vars=None):
@@ -104,7 +105,7 @@ class MainWindow(QWidget):
 
         # System selection
         self.system_selector = QComboBox()
-        self.system_selector.addItems(["Simulation", "COM1", "COM2", "COM3"])
+        self.system_selector.addItems(["Linearized Simulation", "Nonlinear Simulation"])
         controls_layout.addWidget(QLabel("System:"))
         controls_layout.addWidget(self.system_selector)
 
@@ -116,11 +117,22 @@ class MainWindow(QWidget):
         self.start_button.clicked.connect(self.start_system)
         self.stop_button.clicked.connect(self.stop_system)
 
-        # Controller Selector
+        # Controller Selector (Dynamic)
         self.controller_dropdown = QComboBox()
-        self.controller_dropdown.addItems(["PID", "LQR", "Init"])
+        self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
         controls_layout.addWidget(QLabel("Controller:"))
         controls_layout.addWidget(self.controller_dropdown)
+
+        # Load controller list and parameters
+        self.controller_param_fields = {}
+        self.controller_group = QGroupBox("Tuning Parameters")
+        self.controller_form_layout = QFormLayout()
+        self.controller_group.setLayout(self.controller_form_layout)
+        controls_layout.addWidget(self.controller_group)
+
+        self.controllers, self.controller_params = self.get_available_controllers()
+        self.controller_dropdown.addItems(self.controllers)
+        self.display_param_fields(self.controller_dropdown.currentText())
 
         # Swing-up toggle
         self.swingup_checkbox = QCheckBox("Enable Swing-Up")
@@ -136,11 +148,13 @@ class MainWindow(QWidget):
         self.plot_data = []
 
         titles = ["Cart Position", "Pendulum Angle", "Control Output", "Loop Execution Time"]
-        ranges = [(-100, 100), (0, 2 * math.pi), (-10, 10), (0, 0.02)]
+        y_ranges = [(-1.5, 1.5), (0, 2 * math.pi), (-10, 10), (0, 0.02)]    # y-Axis ranges
+        x_ranges = [200, 200, 200, 200]  # x-Axis ranges (Number of points to display)
         for title in titles:
             plot = pg.PlotWidget(title=title)
             plot.showGrid(x=True, y=True)
-            plot.setYRange(ranges[titles.index(title)][0], ranges[titles.index(title)][1])
+            plot.setYRange(y_ranges[titles.index(title)][0], y_ranges[titles.index(title)][1])
+            plot.setXRange(0, x_ranges[titles.index(title)])
             curve = plot.plot(pen=pg.mkPen(color='y', width=2))
             self.plot_widgets.append((plot, curve))
             self.plot_data.append([])
@@ -160,6 +174,100 @@ class MainWindow(QWidget):
         self.timer.setInterval(10)  # 100Hz
         self.timer.timeout.connect(self.update_plots)
         self.timer.start()
+
+    def get_available_controllers(self, controller_dir=None):
+        if controller_dir is None:
+            # Works both when bundled and in development
+            if getattr(sys, 'frozen', False):
+                # If bundled by PyInstaller
+                base_dir = sys._MEIPASS
+            else:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+
+            controller_dir = os.path.join(base_dir, "..", "controllers")
+            controller_dir = os.path.abspath(controller_dir)
+
+        controllers = []
+        controller_params = {}
+
+        if not os.path.isdir(controller_dir):
+            print(f"[ERROR] Controller directory not found: {base_dir}, {controller_dir}")
+            return controllers, controller_params
+    
+        for filename in os.listdir(controller_dir):
+            if ((filename.startswith("__") == False) and (filename.endswith(".py"))):
+                if filename.endswith(".py"):
+                    controller_name = filename[:-3]  # Remove .py extension
+                    controllers.append(controller_name)
+
+                    # Extract #/VARS ... #/ENDVARS
+                    with open(os.path.join(controller_dir, filename), "r") as f:
+                        lines = f.readlines()
+                    inside_block = False
+                    params = []
+                    for line in lines:
+                        line = line.strip()
+                        if line == "#/VARS":
+                            inside_block = True
+                        elif line == "#/ENDVARS":
+                            break
+                        elif inside_block and line.startswith("#/"):
+                            try:
+                                var_line = line[2:].strip()  # remove "#/"
+                                if ":" in var_line:
+                                    param_name, var_type = var_line.split(":", 1)
+                                    params.append((param_name.strip(), var_type.strip()))
+                                else:
+                                    params.append((var_line.strip(), "float"))  # default to float
+                            except ValueError:
+                                print(f"[WARNING] Could not parse line: {line}")
+
+                    controller_params[controller_name] = params
+
+
+        return controllers, controller_params
+
+    def display_param_fields(self, controller_name):
+        # Clear previous inputs
+        for i in reversed(range(self.controller_form_layout.count())):
+            widget = self.controller_form_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.controller_param_fields.clear()
+    
+        # Load parameter list: [("Kp", "float"), ("Enabled", "bool"), ...]
+        param_list = self.controller_params.get(controller_name, [])
+    
+        for param_name, param_type in param_list:
+            label = QLabel(param_name + ":")
+    
+            if param_type == "float":
+                field = QDoubleSpinBox()
+                field.setDecimals(4)
+                field.setRange(-1000.0, 1000.0)
+                field.setValue(0.0)
+            elif param_type == "int":
+                field = QSpinBox()
+                field.setRange(-1000, 1000)
+                field.setValue(0)
+            elif param_type == "bool":
+                field = QCheckBox()
+            else:  # fallback: string
+                field = QLineEdit()
+    
+            self.controller_form_layout.addRow(label, field)
+            self.controller_param_fields[param_name] = field
+
+    def get_controller_param_values(self):
+        values = {}
+        for name, widget in self.controller_param_fields.items():
+            if isinstance(widget, QDoubleSpinBox) or isinstance(widget, QSpinBox):
+                values[name] = widget.value()
+            elif isinstance(widget, QCheckBox):
+                values[name] = widget.isChecked()
+            elif isinstance(widget, QLineEdit):
+                values[name] = widget.text()
+        return values
 
     def connect_to_shared_vars(self, shared_vars):
         self.shared_vars = shared_vars
@@ -185,9 +293,10 @@ class MainWindow(QWidget):
         self.visualizer.update()
     
     def start_system(self):
+        # === System selection ===
         system_choice = self.system_selector.currentText()
 
-        if system_choice == "Simulation":
+        if system_choice == "Linearized Simulation":
             if self.sim_proc and self.sim_proc.is_alive():
                 print("Simulation already running.")
                 return
@@ -200,24 +309,53 @@ class MainWindow(QWidget):
                 "loop_time": multiprocessing.Value('d', 0.0)
             }
 
-            self.sim_proc = start_simulation_backend(self.shared_vars)
+            self.sim_proc = start_linear_simulation_backend(self.shared_vars)
             self.connect_to_shared_vars(self.shared_vars)
 
-            ### PID GAIN ###
-            Kp = 20.0
-            Ki = 0.0
-            Kd = 1.0
-            self.pid_proc = start_pid_controller(self.shared_vars, Kp, Ki, Kd)
+        elif system_choice == "Nonlinear Simulation":
+            if self.sim_proc and self.sim_proc.is_alive():
+                print("Simulation already running.")
+                return
+
+            print("Starting nonlinear simulation...")
+            self.shared_vars = {
+                "position": multiprocessing.Value('d', 0.0),
+                "angle": multiprocessing.Value('d', 0.0),
+                "control_signal": multiprocessing.Value('d', 0.0),
+                "loop_time": multiprocessing.Value('d', 0.0)
+            }
+
+            self.sim_proc = start_nonlinear_simulation_backend(self.shared_vars)
+            self.connect_to_shared_vars(self.shared_vars)
 
         else:
             print(f"Real hardware mode selected: {system_choice}")
             # TODO: implement serial backend init
+        
+        # === Controller selection ===
+        controller_name = self.controller_dropdown.currentText()
+        param_values = self.get_controller_param_values()
+
+        try:
+            # Dynamically import the module: controllers.pid_controller
+            controller_module = importlib.import_module(f"controllers.{controller_name}")
+
+            # Start function must follow naming: start_<controllername>
+            start_func_name = f"start_{controller_name}"
+            start_func = getattr(controller_module, start_func_name)
+
+            # Call with shared_vars and unpacked param values
+            self.controller_proc = start_func(self.shared_vars, *param_values.values())
+
+        except Exception as e:
+            print(f"[ERROR] Failed to start controller '{controller_name}': {e}")
+
 
     def stop_system(self):
         if self.sim_proc and self.sim_proc.is_alive():
             print("Stopping simulation...")
-            self.pid_proc.terminate()
-            self.pid_proc.join()
+            self.controller_proc.terminate()
+            self.controller_proc.join()
             self.sim_proc.terminate()
             self.sim_proc.join()
             self.sim_proc = None
@@ -238,3 +376,4 @@ def run_gui(shared_vars=None):
         window.connect_to_shared_vars(shared_vars)
     window.show()
     sys.exit(app.exec_())
+
