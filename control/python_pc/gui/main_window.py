@@ -107,6 +107,7 @@ class MainWindow(QWidget):
             "background-color: #003300; border-radius: 7px;"
         )
 
+
         # === Master Layout ===
         master_layout = QHBoxLayout()
         self.setLayout(master_layout)
@@ -174,6 +175,7 @@ class MainWindow(QWidget):
         controls_layout.addWidget(self.swingup_led)
         controls_layout.addWidget(QLabel("Controller Active:"))
         controls_layout.addWidget(self.controller_led)
+
 
         # Spacer
         controls_layout.addStretch()
@@ -340,6 +342,7 @@ class MainWindow(QWidget):
                     self.shared_vars, *self.controller_param_values.values()
                 )
                 self.controller_led.setStyleSheet(self.led_style(True))
+
     
     def start_system(self):
         # === System selection ===
@@ -412,6 +415,7 @@ class MainWindow(QWidget):
                 self.controller_led.setStyleSheet(self.led_style(True))
                 self.swingup_led.setStyleSheet(self.led_style(False))
 
+
         except Exception as e:
             print(f"[ERROR] Failed to start controller '{controller_name}': {e}")
 
@@ -429,6 +433,7 @@ class MainWindow(QWidget):
                 self.swingup_timer.stop()
             self.controller_led.setStyleSheet(self.led_style(False))
             self.swingup_led.setStyleSheet(self.led_style(False))
+
             self.sim_proc.terminate()
             self.sim_proc.join()
             self.sim_proc = None

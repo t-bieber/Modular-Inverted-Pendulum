@@ -40,6 +40,7 @@ def energy_swingup(position, angle, control_signal, loop_time,
         x_dot = (position.value - prev_pos) / dt
         prev_pos = position.value
 
+
         # Mechanical energy relative to the upright position
         potential = m * g * l * (1 - math.cos(theta))
         kinetic = 0.5 * m * (l ** 2) * theta_dot ** 2
@@ -52,6 +53,7 @@ def energy_swingup(position, angle, control_signal, loop_time,
             u += -k_pos * (x - pos_limit) - 2.0 * x_dot
         elif x < -pos_limit:
             u += -k_pos * (x + pos_limit) - 2.0 * x_dot
+
         u = max(min(u, 10.0), -10.0)
         control_signal.value = u
 
@@ -68,6 +70,7 @@ def start_energy_swingup(shared_vars, catch_angle, catch_momentum):
         target=energy_swingup,
         args=(
             shared_vars["position"],
+
             shared_vars["angle"],
             shared_vars["control_signal"],
             shared_vars["loop_time"],
