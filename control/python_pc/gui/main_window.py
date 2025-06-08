@@ -284,7 +284,7 @@ class MainWindow(QWidget):
 
         values = [pos, angle, control, loop_time]
         for i, (_, curve) in enumerate(self.plot_widgets):
-            if len(self.plot_data[i]) > 200:
+            if len(self.plot_data[i]) >= 200:
                 self.plot_data[i].pop(0)
             self.plot_data[i].append(values[i])
             curve.setData(self.plot_data[i])
