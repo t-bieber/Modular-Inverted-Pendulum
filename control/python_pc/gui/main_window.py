@@ -101,6 +101,13 @@ class MainWindow(QWidget):
         self.controller_param_values = None
         self.swingup_timer = None
 
+        # Helper lambda to style LED labels
+        self.led_style = lambda active: (
+            "background-color: #00cc00; border-radius: 7px;" if active else
+            "background-color: #003300; border-radius: 7px;"
+        )
+
+
         # === Master Layout ===
         master_layout = QHBoxLayout()
         self.setLayout(master_layout)
@@ -156,6 +163,19 @@ class MainWindow(QWidget):
         self.catch_momentum_field.setValue(0.5)
         controls_layout.addWidget(QLabel("Catch Momentum (rad/s):"))
         controls_layout.addWidget(self.catch_momentum_field)
+
+        # === Controller Activity Indicators ===
+        self.swingup_led = QLabel()
+        self.swingup_led.setFixedSize(15, 15)
+        self.swingup_led.setStyleSheet(self.led_style(False))
+        self.controller_led = QLabel()
+        self.controller_led.setFixedSize(15, 15)
+        self.controller_led.setStyleSheet(self.led_style(False))
+        controls_layout.addWidget(QLabel("Swing-Up Active:"))
+        controls_layout.addWidget(self.swingup_led)
+        controls_layout.addWidget(QLabel("Controller Active:"))
+        controls_layout.addWidget(self.controller_led)
+
 
         # Spacer
         controls_layout.addStretch()
@@ -316,10 +336,13 @@ class MainWindow(QWidget):
             self.swingup_timer.stop()
             self.swingup_proc.join()
             self.swingup_proc = None
+            self.swingup_led.setStyleSheet(self.led_style(False))
             if self.controller_start_func:
                 self.controller_proc = self.controller_start_func(
                     self.shared_vars, *self.controller_param_values.values()
                 )
+                self.controller_led.setStyleSheet(self.led_style(True))
+
     
     def start_system(self):
         # === System selection ===
@@ -385,8 +408,13 @@ class MainWindow(QWidget):
                 self.swingup_timer.setInterval(50)
                 self.swingup_timer.timeout.connect(self.check_swingup_completion)
                 self.swingup_timer.start()
+                self.swingup_led.setStyleSheet(self.led_style(True))
+                self.controller_led.setStyleSheet(self.led_style(False))
             else:
                 self.controller_proc = start_func(self.shared_vars, *param_values.values())
+                self.controller_led.setStyleSheet(self.led_style(True))
+                self.swingup_led.setStyleSheet(self.led_style(False))
+
 
         except Exception as e:
             print(f"[ERROR] Failed to start controller '{controller_name}': {e}")
@@ -403,6 +431,9 @@ class MainWindow(QWidget):
                 self.swingup_proc.join()
             if self.swingup_timer:
                 self.swingup_timer.stop()
+            self.controller_led.setStyleSheet(self.led_style(False))
+            self.swingup_led.setStyleSheet(self.led_style(False))
+
             self.sim_proc.terminate()
             self.sim_proc.join()
             self.sim_proc = None
