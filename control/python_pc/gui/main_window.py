@@ -163,35 +163,6 @@ class MainWindow(QWidget):
         self.timer.timeout.connect(self.update_plots)
         self.timer.start()
 
-        self.plot_list.add_button.clicked.connect(self.add_selected_plot)
-        self.plot_list.up_button.clicked.connect(self.move_plot_up)
-        self.plot_list.down_button.clicked.connect(self.move_plot_down)
-        self.plot_list.remove_button.clicked.connect(self.remove_selected_plot)
-
-    def add_selected_plot(self):
-        current_item = self.plot_list.currentItem()
-        if current_item:
-            plot_name = current_item.text()
-            self.plot_area.add_plot(plot_name)
-
-    def remove_selected_plot(self):
-        current_item = self.plot_list.currentItem()
-        if current_item:
-            plot_name = current_item.text()
-            self.plot_area.remove_plot(plot_name)
-
-    def move_plot_up(self):
-        current_item = self.plot_list.currentItem()
-        if current_item:
-            plot_name = current_item.text()
-            self.plot_area.move_plot(plot_name, direction="up")
-
-    def move_plot_down(self):
-        current_item = self.plot_list.currentItem()
-        if current_item:
-            plot_name = current_item.text()
-            self.plot_area.move_plot(plot_name, direction="down")
-
     def connect_to_shared_vars(self, shared_vars):
         self.shared_vars = shared_vars
         self.visualizer.shared_vars = shared_vars
