@@ -1,27 +1,24 @@
 """
 main.py
 
-Run this file to start the application. This will run the GUI, which contains the rest of the application logic.
+Entry point for the desktop application. This simply delegates to the GUI
+launcher defined in ``gui.gui``. The extra ``multiprocessing`` start method
+setup is required when running on Windows/macOS.
+
 This project is maintained on GitHub: https://github.com/t-bieber/Modular-Inverted-Pendulum
 
 Author: Tom Bieber
 """
 
-if __name__ == "__main__":
-    
-    run_gui()
-
 import multiprocessing
-import sys
-from PyQt5.QtWidgets import QApplication
 from gui import run_gui
 
-def main():
-    multiprocessing.set_start_method("spawn")  # Good practice on Windows/macOS
-    app = QApplication(sys.argv)
-    window = run_gui()
-    window.show()
-    sys.exit(app.exec_())
+
+def main() -> None:
+    """Start the Qt based control GUI."""
+    multiprocessing.set_start_method("spawn")
+    run_gui()
+
 
 if __name__ == "__main__":
     main()
