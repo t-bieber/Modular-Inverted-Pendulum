@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QApplication
 # of the package or as a script. Absolute imports would fail when invoked via
 # ``control/python_pc/main.py`` as they would not resolve correctly.
 from .main_window import MainWindow
-from ..utils.settings_manager import SettingsManager
+from utils.settings_manager import SettingsManager
 
 def run_gui():
     app = QApplication(sys.argv)
