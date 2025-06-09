@@ -11,7 +11,9 @@ Author: Tom Bieber
 """
 
 import multiprocessing
-from gui import run_gui
+# ``run_gui`` lives in the ``gui`` module within the ``gui`` package. Importing
+# it explicitly from ``gui.gui`` avoids relying on package ``__init__`` exports.
+from gui.gui import run_gui
 
 
 def main() -> None:
