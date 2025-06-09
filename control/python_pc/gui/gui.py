@@ -1,8 +1,12 @@
 # gui.py
 import sys
 from PyQt5.QtWidgets import QApplication
-from main_window import MainWindow
-from utils.settings_manager import SettingsManager
+
+# Import from the current package so this module works whether executed as part
+# of the package or as a script. Absolute imports would fail when invoked via
+# ``control/python_pc/main.py`` as they would not resolve correctly.
+from .main_window import MainWindow
+from ..utils.settings_manager import SettingsManager
 
 def run_gui():
     app = QApplication(sys.argv)
