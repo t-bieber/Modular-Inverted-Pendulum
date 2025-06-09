@@ -7,15 +7,20 @@ The right side of the window displays real-time plots of system variables and a 
 The GUI communicates with simulation or hardware backends using shared variables and multiprocessing.
 """
 
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QCheckBox, QLabel, QLineEdit, QFormLayout, QGroupBox, QSpinBox, QDoubleSpinBox
-from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QPainterPath
-from PyQt5.QtCore import QTimer, Qt, QEvent, QPointF, QRectF
-import pyqtgraph as pg
-import os
-import importlib
 import sys
+import os
 import math
+import importlib
 import multiprocessing
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QCheckBox,
+    QLabel, QLineEdit, QFormLayout, QGroupBox, QSpinBox, QDoubleSpinBox, QListWidget,
+    QListWidgetItem, QAbstractItemView, QFrame
+)
+from PyQt5.QtGui import QPainter, QPen, QBrush, QColor
+from PyQt5.QtCore import Qt, QTimer, QEvent, QPointF, QRectF
+import pyqtgraph as pg
+
 from backends.linear_sim_backend import start_linear_simulation_backend
 from backends.nonlinear_sim_backend import start_nonlinear_simulation_backend
 
@@ -85,14 +90,145 @@ class PendulumVisualizer(QWidget):
         painter.setBrush(QBrush(self.bob_color))
         painter.drawEllipse(QPointF(end_x, end_y), 10, 10)
 
+class PlotContainer(pg.GraphicsLayoutWidget):
+    def __init__(self, plot_name, y_range, getter):
+        super().__init__()
+        self.plot_name = plot_name
+        self.getter = getter
+        self.data = [0] * 200
+        self.max_points = 200
+        self.plot_item = self.addPlot(title=plot_name)
+        self.plot_item.showGrid(x=True, y=True)
+        self.plot_item.setYRange(*y_range)
+        self.curve = self.plot_item.plot(pen=pg.mkPen(color='y', width=2))
+
+    def update_plot(self, shared_vars):
+        value = self.getter(shared_vars)
+        self.data.append(value)
+        if len(self.data) > self.max_points:
+            self.data.pop(0)
+        self.curve.setData(self.data)
+
+class PlotList(QListWidget):
+    def __init__(self, drop_area):
+        super().__init__()
+        self.drop_area = drop_area
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.setFrameShape(QFrame.StyledPanel)
+
+        # Add control buttons below the list
+        self.button_layout = QVBoxLayout()
+
+        self.add_button = QPushButton("Add")
+        self.add_button.clicked.connect(self.add_selected_plot)
+        self.button_layout.addWidget(self.add_button)
+
+        self.remove_button = QPushButton("Remove")
+        self.remove_button.clicked.connect(self.remove_selected_plot)
+        self.button_layout.addWidget(self.remove_button)
+
+        self.up_button = QPushButton("Move Up")
+        self.up_button.clicked.connect(self.move_plot_up)
+        self.button_layout.addWidget(self.up_button)
+
+        self.down_button = QPushButton("Move Down")
+        self.down_button.clicked.connect(self.move_plot_down)
+        self.button_layout.addWidget(self.down_button)
+
+        self.button_container = QWidget()
+        self.button_container.setLayout(self.button_layout)
+
+        # Disable editing or dragging
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.setDragDropMode(QAbstractItemView.NoDragDrop)
+
+    def populate(self, plot_names):
+        self.clear()
+        for name in plot_names:
+            self.addItem(name)
+
+    def get_selected_plot_name(self):
+        item = self.currentItem()
+        return item.text() if item else None
+
+    def add_selected_plot(self):
+        plot_name = self.get_selected_plot_name()
+        if plot_name and plot_name not in self.drop_area.active_plot_widgets:
+            key, y_range, getter = self.drop_area.available_plots[plot_name]
+            plot_widget = PlotContainer(plot_name, y_range, getter)
+            self.drop_area.layout.addWidget(plot_widget)
+            self.drop_area.active_plot_widgets[plot_name] = plot_widget
+
+    def remove_selected_plot(self):
+        plot_name = self.get_selected_plot_name()
+        if plot_name:
+            self.drop_area.remove_plot(plot_name)
+
+    def move_plot_up(self):
+        plot_name = self.get_selected_plot_name()
+        if plot_name and plot_name in self.drop_area.active_plot_widgets:
+            widgets = self.drop_area.active_plot_widgets
+            names = list(widgets.keys())
+            idx = names.index(plot_name)
+            if idx > 0:
+                names[idx], names[idx - 1] = names[idx - 1], names[idx]
+                self._reorder_plots(names)
+
+    def move_plot_down(self):
+        plot_name = self.get_selected_plot_name()
+        if plot_name and plot_name in self.drop_area.active_plot_widgets:
+            widgets = self.drop_area.active_plot_widgets
+            names = list(widgets.keys())
+            idx = names.index(plot_name)
+            if idx < len(names) - 1:
+                names[idx], names[idx + 1] = names[idx + 1], names[idx]
+                self._reorder_plots(names)
+
+    def _reorder_plots(self, ordered_names):
+        for i in reversed(range(self.drop_area.layout.count())):
+            item = self.drop_area.layout.itemAt(i)
+            widget = item.widget()
+            if widget:
+                self.drop_area.layout.removeWidget(widget)
+                widget.setParent(None)
+
+        new_widgets = {}
+        for name in ordered_names:
+            key, y_range, getter = self.drop_area.available_plots[name]
+            widget = PlotContainer(name, y_range, getter)
+            self.drop_area.layout.addWidget(widget)
+            new_widgets[name] = widget
+
+        self.drop_area.active_plot_widgets = new_widgets
+
+class DropPlotArea(QWidget):
+    def __init__(self, available_plots, shared_vars):
+        super().__init__()
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.available_plots = available_plots
+        self.shared_vars = shared_vars
+        self.active_plot_widgets = {}
+
+    def remove_plot(self, plot_name):
+        if plot_name in self.active_plot_widgets:
+            widget = self.active_plot_widgets.pop(plot_name)
+            self.layout.removeWidget(widget)
+            widget.setParent(None)
+
+    def update_all(self):
+        for widget in self.active_plot_widgets.values():
+            widget.update_plot(self.shared_vars)
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Modular Inverted Pendulum Control")
-        self.setMinimumSize(800, 600)  # Optional: set a minimum size
-        self.showMaximized()           # Start maximized
+        self.setMinimumSize(800, 600)
+        self.showMaximized()
 
+        self.plot_list = None
+        self.plot_area = None
         self.shared_vars = None
         self.sim_proc = None
         self.controller_proc = None
@@ -101,26 +237,21 @@ class MainWindow(QWidget):
         self.controller_param_values = None
         self.swingup_timer = None
 
-        # Helper lambda to style LED labels
         self.led_style = lambda active: (
             "background-color: #00cc00; border-radius: 7px;" if active else
             "background-color: #003300; border-radius: 7px;"
         )
 
-        # === Master Layout ===
         master_layout = QHBoxLayout()
         self.setLayout(master_layout)
 
-        # === LEFT COLUMN: Controls ===
+        # Controls column
         controls_layout = QVBoxLayout()
-
-        # System selection
         self.system_selector = QComboBox()
         self.system_selector.addItems(["Linearized Simulation", "Nonlinear Simulation"])
         controls_layout.addWidget(QLabel("System:"))
         controls_layout.addWidget(self.system_selector)
 
-        # Start/Stop
         self.start_button = QPushButton("Start")
         self.stop_button = QPushButton("Stop")
         controls_layout.addWidget(self.start_button)
@@ -128,13 +259,11 @@ class MainWindow(QWidget):
         self.start_button.clicked.connect(self.start_system)
         self.stop_button.clicked.connect(self.stop_system)
 
-        # Controller Selector (Dynamic)
         self.controller_dropdown = QComboBox()
         self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
         controls_layout.addWidget(QLabel("Controller:"))
         controls_layout.addWidget(self.controller_dropdown)
 
-        # Load controller list and parameters
         self.controller_param_fields = {}
         self.controller_group = QGroupBox("Tuning Parameters")
         self.controller_form_layout = QFormLayout()
@@ -145,7 +274,6 @@ class MainWindow(QWidget):
         self.controller_dropdown.addItems(self.controllers)
         self.display_param_fields(self.controller_dropdown.currentText())
 
-        # Swing-up toggle
         self.swingup_checkbox = QCheckBox("Enable Swing-Up")
         controls_layout.addWidget(self.swingup_checkbox)
 
@@ -163,7 +291,6 @@ class MainWindow(QWidget):
         controls_layout.addWidget(QLabel("Catch Momentum (rad/s):"))
         controls_layout.addWidget(self.catch_momentum_field)
 
-        # === Controller Activity Indicators ===
         self.swingup_led = QLabel()
         self.swingup_led.setFixedSize(15, 15)
         self.swingup_led.setStyleSheet(self.led_style(False))
@@ -175,42 +302,89 @@ class MainWindow(QWidget):
         controls_layout.addWidget(QLabel("Controller Active:"))
         controls_layout.addWidget(self.controller_led)
 
-        # Spacer
         controls_layout.addStretch()
 
-        # === RIGHT COLUMN: Plots + Visualizer ===
-        right_layout = QVBoxLayout()
+        # Center column: Plot + Visualizer
+        center_layout = QVBoxLayout()
 
-        self.plot_widgets = []
-        self.plot_data = []
+        self.available_plots = {
+            "Cart Position": ("position", (-1.5, 1.5), lambda v: v["position"].value),
+            "Pendulum Angle": ("angle", (0, 2 * math.pi), lambda v: v["angle"].value),
+            "Control Output": ("control", (-10, 10), lambda v: v["control_signal"].value),
+            "Loop Execution Time": ("loop", (0, 0.02), lambda v: v["loop_time"].value),
+            "Angular Momentum": ("momentum", (-1, 1), lambda v: v["angle"].value * v["control_signal"].value),
+        }
 
-        titles = ["Cart Position", "Pendulum Angle", "Control Output", "Loop Execution Time"]
-        y_ranges = [(-1.5, 1.5), (0, 2 * math.pi), (-10, 10), (0, 0.02)]    # y-Axis ranges
-        x_ranges = [200, 200, 200, 200]  # x-Axis ranges (Number of points to display)
-        for title in titles:
-            plot = pg.PlotWidget(title=title)
-            plot.showGrid(x=True, y=True)
-            plot.setYRange(y_ranges[titles.index(title)][0], y_ranges[titles.index(title)][1])
-            plot.setXRange(0, x_ranges[titles.index(title)])
-            curve = plot.plot(pen=pg.mkPen(color='y', width=2))
-            self.plot_widgets.append((plot, curve))
-            self.plot_data.append([])
-            right_layout.addWidget(plot)
+        self.plot_area = DropPlotArea(self.available_plots, self.shared_vars)
+        center_layout.addWidget(self.plot_area, 3)
 
-        # === Pendulum Visualizer Placeholder ===
         self.visualizer = PendulumVisualizer()
         self.visualizer.setStyleSheet("background-color: #222; border: 1px solid #444;")
-        right_layout.addWidget(self.visualizer)
+        center_layout.addWidget(self.visualizer, 1)
 
-        # Combine layouts
+        # Right column: Sidebar
+        sidebar_layout = QVBoxLayout()
+        self.plot_list = PlotList(self.plot_area)
+        for plot_name in self.available_plots:
+            self.plot_list.addItem(plot_name)
+        self.plot_list.setDisabled(False)
+        sidebar_layout.addWidget(self.plot_list)
+        sidebar_layout.addWidget(self.plot_list.button_container)
+
+        sidebar_widget = QWidget()
+        sidebar_widget.setLayout(sidebar_layout)
+        sidebar_widget.setFixedWidth(140)
+
         master_layout.addLayout(controls_layout, stretch=1)
-        master_layout.addLayout(right_layout, stretch=3)
+        master_layout.addLayout(center_layout, stretch=3)
+        master_layout.addWidget(sidebar_widget)
 
-        # === Timer for Plot Updates ===
         self.timer = QTimer()
-        self.timer.setInterval(10)  # 100Hz
+        self.timer.setInterval(10)
         self.timer.timeout.connect(self.update_plots)
         self.timer.start()
+
+        self.plot_list.add_button.clicked.connect(self.add_selected_plot)
+        self.plot_list.up_button.clicked.connect(self.move_plot_up)
+        self.plot_list.down_button.clicked.connect(self.move_plot_down)
+        self.plot_list.remove_button.clicked.connect(self.remove_selected_plot)
+
+    def add_selected_plot(self):
+        current_item = self.plot_list.currentItem()
+        if current_item:
+            plot_name = current_item.text()
+            self.plot_area.add_plot(plot_name)
+
+    def remove_selected_plot(self):
+        current_item = self.plot_list.currentItem()
+        if current_item:
+            plot_name = current_item.text()
+            self.plot_area.remove_plot(plot_name)
+
+    def move_plot_up(self):
+        current_item = self.plot_list.currentItem()
+        if current_item:
+            plot_name = current_item.text()
+            self.plot_area.move_plot(plot_name, direction="up")
+
+    def move_plot_down(self):
+        current_item = self.plot_list.currentItem()
+        if current_item:
+            plot_name = current_item.text()
+            self.plot_area.move_plot(plot_name, direction="down")
+
+    def connect_to_shared_vars(self, shared_vars):
+        self.shared_vars = shared_vars
+        self.visualizer.shared_vars = shared_vars
+        if self.plot_area:
+            self.plot_area.shared_vars = shared_vars
+
+    def update_plots(self):
+        if not self.shared_vars:
+            return
+        if self.plot_area:
+            self.plot_area.update_all()
+        self.visualizer.update()
 
     def get_available_controllers(self, controller_dir=None):
         if controller_dir is None:
@@ -308,25 +482,16 @@ class MainWindow(QWidget):
 
     def connect_to_shared_vars(self, shared_vars):
         self.shared_vars = shared_vars
-        self.visualizer.shared_vars = shared_vars  # Set once
+        self.visualizer.shared_vars = shared_vars
+        if self.plot_area:
+            self.plot_area.shared_vars = shared_vars
+
 
     def update_plots(self):
         if not self.shared_vars:
             return
-
-        pos = self.shared_vars["position"].value
-        angle = self.shared_vars["angle"].value
-        control = self.shared_vars["control_signal"].value
-        loop_time = self.shared_vars["loop_time"].value
-
-        values = [pos, angle, control, loop_time]
-        for i, (_, curve) in enumerate(self.plot_widgets):
-            if len(self.plot_data[i]) >= 200:
-                self.plot_data[i].pop(0)
-            self.plot_data[i].append(values[i])
-            curve.setData(self.plot_data[i])
-
-        # update visualizer
+        if self.plot_area:
+            self.plot_area.update_all()
         self.visualizer.update()
 
     def check_swingup_completion(self):
@@ -391,14 +556,14 @@ class MainWindow(QWidget):
             start_func = getattr(controller_module, start_func_name)
 
             if self.swingup_checkbox.isChecked():
-                from controllers.__energy_swingup import start_energy_swingup
+                from controllers.__phase_swingup import start_phase_swingup
 
                 self.controller_start_func = start_func
                 self.controller_param_values = param_values
                 catch_angle = self.catch_angle_field.value()
                 catch_momentum = self.catch_momentum_field.value()
 
-                self.swingup_proc = start_energy_swingup(
+                self.swingup_proc = start_phase_swingup(
                     self.shared_vars, catch_angle, catch_momentum
                 )
                 self.swingup_timer = QTimer()

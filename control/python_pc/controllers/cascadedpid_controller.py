@@ -50,10 +50,10 @@ def cascadedpid_controller(position, angle, control_signal, loop_time,
         pos_prev_error = pos_error
 
         # Clamp desired angle to a realistic range
-        print(f"Desired angle: {desired_angle:.4f} radians")
+        # print(f"Desired angle: {desired_angle:.4f} radians")
         max_angle = math.radians(10)
         desired_angle = math.pi - max(min(desired_angle, max_angle), -max_angle)
-        print(f"Clamped desired angle: {desired_angle:.4f} radians")
+        # print(f"Clamped desired angle: {desired_angle:.4f} radians")
 
         # Inner PID: pendulum angle -> motor command
         angle_error = desired_angle - angle.value
