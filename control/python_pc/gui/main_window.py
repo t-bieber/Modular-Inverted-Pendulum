@@ -37,15 +37,17 @@ from .plot_widgets import PlotContainer, PlotList, DropPlotArea
 
 from backends.linear_sim_backend import start_linear_simulation_backend
 from backends.nonlinear_sim_backend import start_nonlinear_simulation_backend
+from utils.settings_manager import SettingsManager
 
 
 class MainWindow(QWidget):
-    def __init__(self):
+    def __init__(self, settings: SettingsManager = None):
         super().__init__()
         self.setWindowTitle("Modular Inverted Pendulum Control")
         self.setMinimumSize(800, 600)
         self.showMaximized()
 
+        self.settings = settings
         self.plot_list = None
         self.plot_area = None
         self.shared_vars = None

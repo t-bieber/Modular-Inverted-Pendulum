@@ -47,8 +47,8 @@ def simulated_physics_loop(position, angle, control_signal):
     ])
     
     # Initial state [x, x_dot, θ-π, θ_dot]
-    rand_theta_offset = np.random.uniform(-0.35, 0.35)        # Small random offset for initial angle
-    rand_theta_dot_offset = np.random.uniform(-0.05, 0.05)    # Small random offset for initial velocity
+    rand_theta_offset = np.random.uniform(-0.2, 0.2)        # Small random offset for initial angle
+    rand_theta_dot_offset = np.random.uniform(-0.1, 0.1)    # Small random offset for initial velocity
     state = np.array([[0.0], [0.0], [0 + rand_theta_offset], [0 + rand_theta_dot_offset]])
 
     while True:

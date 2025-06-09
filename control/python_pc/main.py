@@ -8,7 +8,20 @@ Author: Tom Bieber
 """
 
 if __name__ == "__main__":
-    import multiprocessing
-    from gui.main_window import run_gui
-    multiprocessing.set_start_method("spawn")  # Good practice on Windows/macOS
+    
     run_gui()
+
+import multiprocessing
+import sys
+from PyQt5.QtWidgets import QApplication
+from gui import run_gui
+
+def main():
+    multiprocessing.set_start_method("spawn")  # Good practice on Windows/macOS
+    app = QApplication(sys.argv)
+    window = run_gui()
+    window.show()
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
