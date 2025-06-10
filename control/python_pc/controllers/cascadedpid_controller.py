@@ -27,6 +27,7 @@ import multiprocessing
 def cascadedpid_controller(position, angle, control_signal, loop_time,
                              outer_Kp=1.0, outer_Ki=0.0, outer_Kd=0.0,
                              inner_Kp=20.0, inner_Ki=0.0, inner_Kd=1.0):
+    """Run a cascaded PID controller in its own loop."""
     # PID state
     dt = 0.01  # 10 ms loop
 
@@ -40,6 +41,8 @@ def cascadedpid_controller(position, angle, control_signal, loop_time,
     angle_integral = 0.0
 
     while True:
+        # Each iteration computes the next control action based on the
+        # current cart position and pendulum angle.
         loop_start = time.perf_counter()
 
         # Outer PID: cart position -> desired pendulum angle
@@ -65,10 +68,11 @@ def cascadedpid_controller(position, angle, control_signal, loop_time,
 
         # Loop timing
         elapsed = time.perf_counter() - loop_start
-        loop_time.value = elapsed
+        loop_time.value = elapsed  # expose loop duration to the GUI
         time.sleep(max(0, dt - elapsed))
 
 def start_cascadedpid_controller(shared_vars, outer_Kp, outer_Ki, outer_Kd, inner_Kp, inner_Ki, inner_Kd):
+    """Helper to spawn ``cascadedpid_controller`` as a separate process."""
     p = multiprocessing.Process(
         target=cascadedpid_controller,
         args=(
@@ -81,4 +85,4 @@ def start_cascadedpid_controller(shared_vars, outer_Kp, outer_Ki, outer_Kd, inne
         )
     )
     p.start()
-    return p
+    return p  # return handle so caller can terminate/join

@@ -21,6 +21,8 @@ class PlotContainer(GraphicsLayoutWidget):
     def __init__(self, plot_name, y_range, getter):
         super().__init__()
         self.plot_name = plot_name
+        # ``getter`` is a callable that extracts the value to plot from the
+        # shared variable dictionary.
         self.getter = getter
         self.data = [0] * 200
         self.max_points = 200
@@ -30,6 +32,7 @@ class PlotContainer(GraphicsLayoutWidget):
         self.curve = self.plot_item.plot(pen=mkPen(color="y", width=2))
 
     def update_plot(self, shared_vars):
+        """Append the latest value and redraw the curve."""
         value = self.getter(shared_vars)
         self.data.append(value)
         if len(self.data) > self.max_points:
@@ -43,6 +46,7 @@ class PlotList(QListWidget):
     def __init__(self, drop_area):
         super().__init__()
         self.drop_area = drop_area
+        # Keep reference to ``DropPlotArea`` so we can add/remove plots
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setFrameShape(QFrame.StyledPanel)
 
@@ -115,6 +119,7 @@ class PlotList(QListWidget):
                 self._reorder_plots(names)
 
     def _reorder_plots(self, ordered_names):
+        # Remove all widgets and re-add in the desired order
         for i in reversed(range(self.drop_area.layout.count())):
             item = self.drop_area.layout.itemAt(i)
             widget = item.widget()
@@ -139,7 +144,7 @@ class DropPlotArea(QWidget):
         super().__init__()
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-        self.available_plots = available_plots
+        self.available_plots = available_plots  # name -> (key, range, getter)
         self.shared_vars = shared_vars
         self.active_plot_widgets = {}
 
@@ -150,5 +155,6 @@ class DropPlotArea(QWidget):
             widget.setParent(None)
 
     def update_all(self):
+        """Update each active plot widget with the latest values."""
         for widget in self.active_plot_widgets.values():
             widget.update_plot(self.shared_vars)

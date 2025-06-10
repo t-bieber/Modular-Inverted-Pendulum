@@ -63,6 +63,7 @@ class MainWindow(QWidget):
             "background-color: #003300; border-radius: 7px;"
         )
 
+        # --- Build UI layout ---
         master_layout = QHBoxLayout()
         self.setLayout(master_layout)
 
@@ -128,6 +129,7 @@ class MainWindow(QWidget):
         # Center column: Plot + Visualizer
         center_layout = QVBoxLayout()
 
+        # Dictionary of plot names -> (shared_var_key, y_range, value_getter)
         self.available_plots = {
             "Cart Position": ("position", (-1.5, 1.5), lambda v: v["position"].value),
             "Pendulum Angle": ("angle", (0, 2 * math.pi), lambda v: v["angle"].value),
@@ -172,6 +174,7 @@ class MainWindow(QWidget):
             self.plot_area.shared_vars = shared_vars
 
     def update_plots(self):
+        """Refresh all plot widgets and the visualizer."""
         if not self.shared_vars:
             return
         if self.plot_area:
@@ -179,6 +182,7 @@ class MainWindow(QWidget):
         self.visualizer.update()
 
     def get_available_controllers(self, controller_dir=None):
+        """Scan the controllers directory for available modules."""
         if controller_dir is None:
             # Works both when bundled and in development
             if getattr(sys, 'frozen', False):
@@ -280,6 +284,7 @@ class MainWindow(QWidget):
 
 
     def update_plots(self):
+        """Update plots while swing-up is running."""
         if not self.shared_vars:
             return
         if self.plot_area:
@@ -299,6 +304,7 @@ class MainWindow(QWidget):
                 self.controller_led.setStyleSheet(self.led_style(True))
     
     def start_system(self):
+        """Start the selected simulation or hardware backend and controller."""
         # === System selection ===
         system_choice = self.system_selector.currentText()
 
@@ -374,6 +380,7 @@ class MainWindow(QWidget):
 
 
     def stop_system(self):
+        """Terminate any running simulation and controllers."""
         if self.sim_proc and self.sim_proc.is_alive():
             print("Stopping simulation...")
             if self.controller_proc and self.controller_proc.is_alive():
@@ -400,9 +407,12 @@ class MainWindow(QWidget):
         super().changeEvent(event)
 
 def run_gui(shared_vars=None):
+    """Convenience function for launching ``MainWindow``."""
     app = QApplication(sys.argv)
     window = MainWindow()
     if shared_vars:
+        # When embedding the GUI in another process, allow passing in existing
+        # shared memory values.
         window.connect_to_shared_vars(shared_vars)
     window.show()
     sys.exit(app.exec_())
