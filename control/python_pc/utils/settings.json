@@ -1,0 +1,18 @@
+{
+    "sim_variables": {
+        "mass": 0.2,
+        "length": 0.5,
+        "damping": 0.01,
+        "friction": 0.01
+    },
+    "visible_plots": [
+        "Cart Position",
+        "Pendulum Angle"
+    ],
+    "plot_order": [
+        "Cart Position",
+        "Pendulum Angle"
+    ],
+    "last_controller": "pid_controller",
+    "controller_params": {}
+}

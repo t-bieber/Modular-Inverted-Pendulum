@@ -36,7 +36,7 @@ from PyQt5.QtCore import Qt, QTimer, QEvent
 
 from .visualizer import PendulumVisualizer
 from .plot_widgets import PlotContainer, PlotList, DropPlotArea
-
+from .settings_window import SettingsWindow
 from backends.linear_sim_backend import start_linear_simulation_backend
 from backends.nonlinear_sim_backend import start_nonlinear_simulation_backend
 from utils.settings_manager import SettingsManager
@@ -73,10 +73,12 @@ class MainWindow(QMainWindow):
 
         # Menu bar
         menubar = self.menuBar()
-        file_menu = menubar.addMenu("File")
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
+        file_menu = menubar.addMenu("&Settings")
+        settings_action = QAction("Settings", self)
+        settings_action.triggered.connect(self.open_settings_window)
+        file_menu.addAction(settings_action)
+        about_action = QAction("About", self)
+        file_menu.addAction(about_action)
 
         # Controls column
         controls_layout = QVBoxLayout()
@@ -177,6 +179,10 @@ class MainWindow(QMainWindow):
         self.timer.setInterval(10)
         self.timer.timeout.connect(self.update_plots)
         self.timer.start()
+
+    def open_settings_window(self):
+        settings_dialog = SettingsWindow(self.settings, self)
+        settings_dialog.exec_()
 
     def connect_to_shared_vars(self, shared_vars):
         self.shared_vars = shared_vars

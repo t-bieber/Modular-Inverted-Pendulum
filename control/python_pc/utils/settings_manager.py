@@ -1,80 +1,70 @@
-import os
 import json
+import os
 
 class SettingsManager:
-    """Load and persist user settings to ``settings.json``."""
+    DEFAULT_SETTINGS = {
+        "sim_variables": {
+            "mass": 0.2,
+            "length": 0.5,
+            "damping": 0.01,
+            "friction": 0.01
+        },
+        "visible_plots": ["Cart Position", "Pendulum Angle"],
+        "plot_order": ["Cart Position", "Pendulum Angle"],
+        "last_controller": "pid_controller",
+        "controller_params": {}
+    }
 
-    def __init__(self):
+    def __init__(self, filename="settings.json"):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.settings_path = os.path.join(base_dir, "settings.json")
+        self.path = os.path.join(base_dir, filename)
+        self.settings = self.load_settings()
 
-        self.defaults = {
-            "sim_variables": {
-                "mass": 0.2,
-                "length": 0.5,
-                "friction": 0.01,
-                "start_angle": 0.1,
-                "start_velocity": 0.0
-            },
-            "visible_plots": ["Cart Position", "Pendulum Angle", "Control Output"],
-            "plot_order": ["Cart Position", "Pendulum Angle", "Control Output"],
-            "last_controller": "pid_controller",
-            "controller_params": {}
-        }
-
-        self.data = self.load()
-
-    def load(self):
-        """Read settings from disk or return defaults."""
-        if os.path.exists(self.settings_path):
+    def load_settings(self):
+        if os.path.exists(self.path):
             try:
-                with open(self.settings_path, "r") as f:
+                with open(self.path, "r") as f:
                     return json.load(f)
             except Exception as e:
                 print(f"[WARNING] Failed to load settings: {e}")
-        return self.defaults.copy()
+        return self.DEFAULT_SETTINGS.copy()
 
-    def save(self):
-        """Persist current settings to disk."""
+    def save_settings(self):
         try:
-            with open(self.settings_path, "w") as f:
-                json.dump(self.data, f, indent=4)
+            with open(self.path, "w") as f:
+                json.dump(self.settings, f, indent=4)
         except Exception as e:
             print(f"[ERROR] Failed to save settings: {e}")
 
-    # --- Simulation settings ---
-    def get_sim_var(self, name):
-        return self.data.get("sim_variables", {}).get(name, self.defaults["sim_variables"].get(name))
+    def get_all_settings(self):
+        return self.settings
 
-    def set_sim_var(self, name, value):
-        if "sim_variables" not in self.data:
-            self.data["sim_variables"] = {}
-        self.data["sim_variables"][name] = value
+    def get_sim_variables(self):
+        return self.settings.get("sim_variables", self.DEFAULT_SETTINGS["sim_variables"])
 
-    # --- Plots ---
+    def set_sim_variable(self, key, value):
+        self.settings.setdefault("sim_variables", {})[key] = value
+
     def get_visible_plots(self):
-        return self.data.get("visible_plots", self.defaults["visible_plots"])
+        return self.settings.get("visible_plots", self.DEFAULT_SETTINGS["visible_plots"])
 
-    def set_visible_plots(self, plot_names):
-        self.data["visible_plots"] = plot_names
+    def set_visible_plots(self, plot_list):
+        self.settings["visible_plots"] = plot_list
 
     def get_plot_order(self):
-        return self.data.get("plot_order", self.defaults["plot_order"])
+        return self.settings.get("plot_order", self.DEFAULT_SETTINGS["plot_order"])
 
-    def set_plot_order(self, order):
-        self.data["plot_order"] = order
+    def set_plot_order(self, order_list):
+        self.settings["plot_order"] = order_list
 
-    # --- Controller state ---
     def get_last_controller(self):
-        return self.data.get("last_controller", self.defaults["last_controller"])
+        return self.settings.get("last_controller", self.DEFAULT_SETTINGS["last_controller"])
 
     def set_last_controller(self, name):
-        self.data["last_controller"] = name
+        self.settings["last_controller"] = name
 
     def get_controller_params(self, controller_name):
-        return self.data.get("controller_params", {}).get(controller_name, {})
+        return self.settings.get("controller_params", {}).get(controller_name, {})
 
     def set_controller_params(self, controller_name, params):
-        if "controller_params" not in self.data:
-            self.data["controller_params"] = {}
-        self.data["controller_params"][controller_name] = params
+        self.settings.setdefault("controller_params", {})[controller_name] = params
