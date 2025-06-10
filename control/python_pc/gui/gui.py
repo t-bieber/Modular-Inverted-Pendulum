@@ -1,6 +1,7 @@
 # gui.py
 # Entry point used when launching the GUI directly.
 import sys
+import qtstylish
 from PyQt5.QtWidgets import QApplication
 
 # Import from the current package so this module works whether executed as part
@@ -12,6 +13,8 @@ from utils.settings_manager import SettingsManager
 def run_gui():
     """Create the QApplication and show the main window."""
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    app.setStyleSheet(qtstylish.dark())
     settings = SettingsManager()
     window = MainWindow(settings)
     window.show()

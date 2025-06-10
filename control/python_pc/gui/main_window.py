@@ -6,34 +6,18 @@ It provides controls for starting/stopping the simulation or hardware, selecting
 The right side of the window displays real-time plots of system variables and a visualizer for the cart-pendulum system.
 The GUI communicates with simulation or hardware backends using shared variables and multiprocessing.
 """
-
+### === external imports ===
 import sys
 import os
 import math
 import importlib
 import multiprocessing
-from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QComboBox,
-    QCheckBox,
-    QLabel,
-    QLineEdit,
-    QFormLayout,
-    QGroupBox,
-    QSpinBox,
-    QDoubleSpinBox,
-    QListWidget,
-    QListWidgetItem,
-    QAbstractItemView,
-    QAction,
-)
 from PyQt5.QtCore import Qt, QTimer, QEvent
-
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
+    QCheckBox, QLabel, QLineEdit, QFormLayout, QGroupBox, QSpinBox, QDoubleSpinBox, QAction,
+)
+### === internal imports ===
 from .visualizer import PendulumVisualizer
 from .plot_widgets import PlotContainer, PlotList, DropPlotArea
 from .settings_window import SettingsWindow
@@ -82,10 +66,6 @@ class MainWindow(QMainWindow):
 
         # Controls column
         controls_layout = QVBoxLayout()
-        self.system_selector = QComboBox()
-        self.system_selector.addItems(["Linearized Simulation", "Nonlinear Simulation"])
-        controls_layout.addWidget(QLabel("System:"))
-        controls_layout.addWidget(self.system_selector)
 
         self.start_button = QPushButton("Start")
         self.stop_button = QPushButton("Stop")
@@ -94,10 +74,10 @@ class MainWindow(QMainWindow):
         self.start_button.clicked.connect(self.start_system)
         self.stop_button.clicked.connect(self.stop_system)
 
-        self.controller_dropdown = QComboBox()
-        self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
-        controls_layout.addWidget(QLabel("Controller:"))
-        controls_layout.addWidget(self.controller_dropdown)
+        self.system_selector = QComboBox()
+        self.system_selector.addItems(["Linearized Simulation", "Nonlinear Simulation"])
+        controls_layout.addWidget(QLabel("System:"))
+        controls_layout.addWidget(self.system_selector)
 
         self.controller_param_fields = {}
         self.controller_group = QGroupBox("Tuning Parameters")
@@ -105,9 +85,51 @@ class MainWindow(QMainWindow):
         self.controller_group.setLayout(self.controller_form_layout)
         controls_layout.addWidget(self.controller_group)
 
+        self.controller_dropdown = QComboBox()
+        self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
+        controls_layout.addWidget(QLabel("Controller:"))
+        controls_layout.addWidget(self.controller_dropdown)
+
         self.controllers, self.controller_params = self.get_available_controllers()
         self.controller_dropdown.addItems(self.controllers)
         self.display_param_fields(self.controller_dropdown.currentText())
+
+        # --- Simulation Settings Panel ---
+        self.sim_settings_group = QGroupBox("Simulation Settings")
+        self.sim_settings_group.setCheckable(True)
+        self.sim_settings_group.setChecked(False)  # Collapsed by default
+        sim_layout = QFormLayout()
+
+        self.sim_mass_field = QDoubleSpinBox()
+        self.sim_mass_field.setRange(0.01, 10.0)
+        self.sim_mass_field.setDecimals(3)
+        self.sim_mass_field.setValue(0.2)
+        sim_layout.addRow("Mass (kg):", self.sim_mass_field)
+
+        self.sim_length_field = QDoubleSpinBox()
+        self.sim_length_field.setRange(0.01, 2.0)
+        self.sim_length_field.setDecimals(3)
+        self.sim_length_field.setValue(0.5)
+        sim_layout.addRow("Length (m):", self.sim_length_field)
+
+        self.sim_damping_field = QDoubleSpinBox()
+        self.sim_damping_field.setRange(0.0, 1.0)
+        self.sim_damping_field.setDecimals(4)
+        self.sim_damping_field.setValue(0.01)
+        sim_layout.addRow("Damping:", self.sim_damping_field)
+
+        self.sim_friction_field = QDoubleSpinBox()
+        self.sim_friction_field.setRange(0.0, 1.0)
+        self.sim_friction_field.setDecimals(4)
+        self.sim_friction_field.setValue(0.01)
+        sim_layout.addRow("Friction:", self.sim_friction_field)
+
+        self.sim_randomize_checkbox = QCheckBox("Randomize Initial State")
+        sim_layout.addRow(self.sim_randomize_checkbox)
+
+        self.sim_settings_group.setLayout(sim_layout)
+        controls_layout.addWidget(self.sim_settings_group)
+        # --- End Simulation Settings Panel 
 
         self.swingup_checkbox = QCheckBox("Enable Swing-Up")
         controls_layout.addWidget(self.swingup_checkbox)

@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QAbstractItemView,
     QFrame,
 )
+import pyqtgraph
 from pyqtgraph import GraphicsLayoutWidget, mkPen
 
 
@@ -29,7 +30,7 @@ class PlotContainer(GraphicsLayoutWidget):
         self.plot_item = self.addPlot(title=plot_name)
         self.plot_item.showGrid(x=True, y=True)
         self.plot_item.setYRange(*y_range)
-        self.curve = self.plot_item.plot(pen=mkPen(color="y", width=2))
+        self.curve = self.plot_item.plot(pen=mkPen(color=(51,102,255), width=2))
 
     def update_plot(self, shared_vars):
         """Append the latest value and redraw the curve."""
