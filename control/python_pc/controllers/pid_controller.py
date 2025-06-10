@@ -18,12 +18,14 @@ import math
 import multiprocessing
 
 def pid_controller(angle, control_signal, loop_time, Kp=1.0, Ki=0.0, Kd=0.0):
+    """Basic PID loop stabilizing the pendulum angle only."""
     setpoint = math.pi
     prev_error = 0.0
     integral = 0.0
     dt = 0.01
 
     while True:
+        # Main control loop: compute PID output at 100 Hz
         start_time = time.perf_counter()
         error = setpoint - angle.value   # Setpoint is π radians (upright position)
         #print(f"PID Error: {error:.4f}, Position: {position.value:.4f}, Angle: {angle.value:.4f}")
@@ -37,6 +39,7 @@ def pid_controller(angle, control_signal, loop_time, Kp=1.0, Ki=0.0, Kd=0.0):
         time.sleep(max(0, dt - elapsed))
 
 def start_pid_controller(shared_vars, Kp, Ki, Kd):
+    """Spawn the ``pid_controller`` loop in its own process."""
     p = multiprocessing.Process(
         target=pid_controller,
         args=(
@@ -49,4 +52,4 @@ def start_pid_controller(shared_vars, Kp, Ki, Kd):
         )
     )
     p.start()
-    return p
+    return p  # return process so caller can manage it

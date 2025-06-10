@@ -12,7 +12,13 @@ import math
 import multiprocessing
 import numpy as np
 
+# This backend uses the full nonlinear equations of motion. It is a bit more
+# computationally expensive than the linear version but allows testing swing-up
+# behaviour. The process runs independently and shares state via ``Value``
+# instances.
+
 def nonlinear_physics_loop(position, angle, control_signal):
+    """Integrate the nonlinear equations of motion in real-time."""
     # Physical parameters
     m_cart = 0.5       # kg
     m_pend = 0.2       # kg
@@ -74,6 +80,7 @@ def nonlinear_physics_loop(position, angle, control_signal):
 
 
 def start_nonlinear_simulation_backend(shared_vars):
+    """Launch ``nonlinear_physics_loop`` in a new ``Process`` and return it."""
     p = multiprocessing.Process(
         target=nonlinear_physics_loop,
         args=(
@@ -83,4 +90,5 @@ def start_nonlinear_simulation_backend(shared_vars):
         )
     )
     p.start()
+    # Caller can terminate or join this process as needed
     return p

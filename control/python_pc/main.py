@@ -18,9 +18,13 @@ from gui.gui import run_gui
 
 def main() -> None:
     """Start the Qt based control GUI."""
+    # ``spawn`` ensures compatibility on Windows/macOS where ``fork`` is not
+    # the default start method. The GUI itself will run in the main process.
     multiprocessing.set_start_method("spawn")
+    # Launch the Qt event loop defined in ``gui.gui``
     run_gui()
 
 
 if __name__ == "__main__":
+    # When executed directly ``main()`` launches the application.
     main()

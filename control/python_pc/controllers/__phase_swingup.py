@@ -39,6 +39,7 @@ def phase_swingup(position, angle, control_signal, loop_time,
     step_counter = 0
 
     while True:
+        # Compute swing-up force every 10ms
         start = time.perf_counter()
 
         theta = angle.value - math.pi
@@ -86,6 +87,7 @@ def phase_swingup(position, angle, control_signal, loop_time,
 
 
 def start_phase_swingup(shared_vars, catch_angle, catch_momentum):
+    """Run ``phase_swingup`` in its own process."""
     p = multiprocessing.Process(
         target=phase_swingup,
         args=(
@@ -98,5 +100,5 @@ def start_phase_swingup(shared_vars, catch_angle, catch_momentum):
         )
     )
     p.start()
-    return p
+    return p  # caller monitors process to know when swing-up finished
 

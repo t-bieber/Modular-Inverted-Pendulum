@@ -14,7 +14,12 @@ import math
 import multiprocessing
 import numpy as np
 
+# NumPy is used for matrix math to integrate the linear state-space model.
+# ``multiprocessing`` allows this simulation to run concurrently with the GUI
+# while sharing state via ``Value`` objects.
+
 def simulated_physics_loop(position, angle, control_signal):
+    """Physics loop running in a separate process for the linearized model."""
     # System parameters (unchanged)
     m_cart = 0.5
     m_pend = 0.2
@@ -55,14 +60,14 @@ def simulated_physics_loop(position, angle, control_signal):
         start = time.time()
         u = control_signal.value
 
-        # State-space update (Euler discretization)
+    # State-space update (Euler discretization)
         state = state + (A @ state + B * u) * dt
 
         # Convert to absolute angle and wrap to [0, 2π]
         absolute_angle = state[2] + math.pi
         wrapped_angle = absolute_angle % (2 * math.pi)
         
-        # Update shared variables
+    # Update shared variables that other processes/threads read from
         angle.value = wrapped_angle  # Wrapped angle [0, 2π] (0=down, π=up)
         position.value = state[0][0]
 
@@ -73,6 +78,7 @@ def simulated_physics_loop(position, angle, control_signal):
             time.sleep(remaining_time)
 
 def start_linear_simulation_backend(shared_vars):
+    """Spawn the physics loop process and return the ``Process`` object."""
     p = multiprocessing.Process(
         target=simulated_physics_loop,
         args=(
@@ -82,4 +88,5 @@ def start_linear_simulation_backend(shared_vars):
         )
     )
     p.start()
+    # Return the process object so the caller can manage its lifecycle
     return p

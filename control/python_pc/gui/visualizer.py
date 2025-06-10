@@ -16,6 +16,7 @@ class PendulumVisualizer(QWidget):
     def __init__(self, shared_vars=None):
         super().__init__()
         self.shared_vars = shared_vars  # Set once at initialization
+        # Dimensions for drawing the cart and pendulum
         self.cart_width = 50
         self.cart_height = 20
         self.pendulum_length = 80
@@ -28,6 +29,7 @@ class PendulumVisualizer(QWidget):
         self.bob_color = QColor(200, 50, 50)  # Red
 
     def paintEvent(self, event):
+        # Called by Qt whenever the widget needs to be redrawn
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 

@@ -2,6 +2,8 @@ import os
 import json
 
 class SettingsManager:
+    """Load and persist user settings to ``settings.json``."""
+
     def __init__(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.settings_path = os.path.join(base_dir, "settings.json")
@@ -23,6 +25,7 @@ class SettingsManager:
         self.data = self.load()
 
     def load(self):
+        """Read settings from disk or return defaults."""
         if os.path.exists(self.settings_path):
             try:
                 with open(self.settings_path, "r") as f:
@@ -32,6 +35,7 @@ class SettingsManager:
         return self.defaults.copy()
 
     def save(self):
+        """Persist current settings to disk."""
         try:
             with open(self.settings_path, "w") as f:
                 json.dump(self.data, f, indent=4)

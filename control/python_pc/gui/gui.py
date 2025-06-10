@@ -1,4 +1,5 @@
 # gui.py
+# Entry point used when launching the GUI directly.
 import sys
 from PyQt5.QtWidgets import QApplication
 
@@ -9,6 +10,7 @@ from .main_window import MainWindow
 from utils.settings_manager import SettingsManager
 
 def run_gui():
+    """Create the QApplication and show the main window."""
     app = QApplication(sys.argv)
     settings = SettingsManager()
     window = MainWindow(settings)
@@ -16,4 +18,5 @@ def run_gui():
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
+    # Allow ``python gui.py`` for quick testing
     run_gui()
