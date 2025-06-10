@@ -14,6 +14,7 @@ import importlib
 import multiprocessing
 from PyQt5.QtWidgets import (
     QApplication,
+    QMainWindow,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -29,6 +30,7 @@ from PyQt5.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QAbstractItemView,
+    QAction,
 )
 from PyQt5.QtCore import Qt, QTimer, QEvent
 
@@ -40,7 +42,7 @@ from backends.nonlinear_sim_backend import start_nonlinear_simulation_backend
 from utils.settings_manager import SettingsManager
 
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     def __init__(self, settings: SettingsManager = None):
         super().__init__()
         self.setWindowTitle("Modular Inverted Pendulum Control")
@@ -64,8 +66,17 @@ class MainWindow(QWidget):
         )
 
         # --- Build UI layout ---
+        central_widget = QWidget()
         master_layout = QHBoxLayout()
-        self.setLayout(master_layout)
+        central_widget.setLayout(master_layout)
+        self.setCentralWidget(central_widget)
+
+        # Menu bar
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu("File")
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
 
         # Controls column
         controls_layout = QVBoxLayout()
