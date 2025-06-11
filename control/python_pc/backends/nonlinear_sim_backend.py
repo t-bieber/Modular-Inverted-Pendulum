@@ -17,15 +17,15 @@ import numpy as np
 # behaviour. The process runs independently and shares state via ``Value``
 # instances.
 
-def nonlinear_physics_loop(position, angle, control_signal):
+def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
     """Integrate the nonlinear equations of motion in real-time."""
     # Physical parameters
-    m_cart = 0.5       # kg
-    m_pend = 0.2       # kg
-    l = 0.3            # m (length to pendulum center of mass)
+    m_cart = sim_vars["m_cart"]     # kg
+    m_pend = sim_vars["m_pend"]     # kg
+    l = sim_vars["length"]          # m (length to pendulum center of mass)
     g = 9.81           # m/s^2
-    b_cart = 0.08       # cart damping (linear friction)
-    b_pend = 0.015      # pendulum friction at pivot (angular)
+    b_cart = sim_vars["friction"]   # cart damping (linear friction)
+    b_pend = sim_vars["damping"]    # pendulum friction at pivot (angular)
 
     dt = 0.01  # 10ms loop time
 
@@ -79,7 +79,7 @@ def nonlinear_physics_loop(position, angle, control_signal):
         time.sleep(max(0, dt - elapsed))
 
 
-def start_nonlinear_simulation_backend(shared_vars):
+def start_nonlinear_simulation_backend(shared_vars, sim_vars):
     """Launch ``nonlinear_physics_loop`` in a new ``Process`` and return it."""
     p = multiprocessing.Process(
         target=nonlinear_physics_loop,
@@ -87,6 +87,7 @@ def start_nonlinear_simulation_backend(shared_vars):
             shared_vars["position"],
             shared_vars["angle"],
             shared_vars["control_signal"],
+            sim_vars
         )
     )
     p.start()

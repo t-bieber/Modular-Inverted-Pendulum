@@ -18,13 +18,13 @@ import numpy as np
 # ``multiprocessing`` allows this simulation to run concurrently with the GUI
 # while sharing state via ``Value`` objects.
 
-def simulated_physics_loop(position, angle, control_signal):
+def simulated_physics_loop(position, angle, control_signal, sim_vars):
     """Physics loop running in a separate process for the linearized model."""
     # System parameters (unchanged)
-    m_cart = 0.5
-    m_pend = 0.2
-    b = 0.1
-    l_pend = 0.3
+    m_cart = sim_vars["pendulum_mass"]
+    m_pend = sim_vars["cart_mass"]
+    b = sim_vars["friction"]
+    l_pend = sim_vars["length"]
     I_pendulum = 0.006
     g = 9.81
     dt = 0.01
@@ -77,7 +77,7 @@ def simulated_physics_loop(position, angle, control_signal):
         if remaining_time > 0:
             time.sleep(remaining_time)
 
-def start_linear_simulation_backend(shared_vars):
+def start_linear_simulation_backend(shared_vars, sim_vars):
     """Spawn the physics loop process and return the ``Process`` object."""
     p = multiprocessing.Process(
         target=simulated_physics_loop,
@@ -85,6 +85,7 @@ def start_linear_simulation_backend(shared_vars):
             shared_vars["position"],
             shared_vars["angle"],
             shared_vars["control_signal"],
+            sim_vars
         )
     )
     p.start()

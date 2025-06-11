@@ -24,7 +24,6 @@ def main() -> None:
     # Launch the Qt event loop defined in ``gui.gui``
     run_gui()
 
-
 if __name__ == "__main__":
     # When executed directly ``main()`` launches the application.
     main()

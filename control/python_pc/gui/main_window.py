@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QCheckBox, QLabel, QLineEdit, QFormLayout, QGroupBox, QSpinBox, QDoubleSpinBox, QAction,
 )
 ### === internal imports ===
+from .collapsible_groupbox import CollapsibleGroupBox
 from .visualizer import PendulumVisualizer
 from .plot_widgets import PlotContainer, PlotList, DropPlotArea
 from .settings_window import SettingsWindow
@@ -80,31 +81,41 @@ class MainWindow(QMainWindow):
         controls_layout.addWidget(self.system_selector)
 
         self.controller_param_fields = {}
-        self.controller_group = QGroupBox("Tuning Parameters")
-        self.controller_form_layout = QFormLayout()
-        self.controller_group.setLayout(self.controller_form_layout)
-        controls_layout.addWidget(self.controller_group)
+        # self.controller_group = QGroupBox("Tuning Parameters")
+        # self.controller_form_layout = QFormLayout()
+        # self.controller_group.setLayout(self.controller_form_layout)
+        # controls_layout.addWidget(self.controller_group)
 
         self.controller_dropdown = QComboBox()
         self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
         controls_layout.addWidget(QLabel("Controller:"))
         controls_layout.addWidget(self.controller_dropdown)
+        
+        self.controller_group = CollapsibleGroupBox("Controller Tuning")
+        self.controller_form_layout = QFormLayout()
+        self.controller_group.setContentLayout(self.controller_form_layout)
+        controls_layout.addWidget(self.controller_group)
 
         self.controllers, self.controller_params = self.get_available_controllers()
         self.controller_dropdown.addItems(self.controllers)
         self.display_param_fields(self.controller_dropdown.currentText())
 
         # --- Simulation Settings Panel ---
-        self.sim_settings_group = QGroupBox("Simulation Settings")
-        self.sim_settings_group.setCheckable(True)
-        self.sim_settings_group.setChecked(False)  # Collapsed by default
+        self.sim_settings_group = CollapsibleGroupBox("Simulation Settings")
         sim_layout = QFormLayout()
 
-        self.sim_mass_field = QDoubleSpinBox()
-        self.sim_mass_field.setRange(0.01, 10.0)
-        self.sim_mass_field.setDecimals(3)
-        self.sim_mass_field.setValue(0.2)
-        sim_layout.addRow("Mass (kg):", self.sim_mass_field)
+        self.sim_cmass_field = QDoubleSpinBox()
+        self.sim_cmass_field.setRange(0.01, 10.0)
+        self.sim_cmass_field.setDecimals(3)
+        self.sim_cmass_field.setValue(0.5)
+        sim_layout.addRow("Cart Mass (kg):", self.sim_cmass_field)
+
+        self.sim_pmass_field = QDoubleSpinBox()
+        self.sim_pmass_field.setRange(0.01, 10.0)
+        self.sim_pmass_field.setDecimals(3)
+        self.sim_pmass_field.setValue(0.2)
+        sim_layout.addRow("Pendulum Mass (kg):", self.sim_pmass_field)
+
 
         self.sim_length_field = QDoubleSpinBox()
         self.sim_length_field.setRange(0.01, 2.0)
@@ -112,41 +123,45 @@ class MainWindow(QMainWindow):
         self.sim_length_field.setValue(0.5)
         sim_layout.addRow("Length (m):", self.sim_length_field)
 
-        self.sim_damping_field = QDoubleSpinBox()
-        self.sim_damping_field.setRange(0.0, 1.0)
-        self.sim_damping_field.setDecimals(4)
-        self.sim_damping_field.setValue(0.01)
-        sim_layout.addRow("Damping:", self.sim_damping_field)
-
         self.sim_friction_field = QDoubleSpinBox()
         self.sim_friction_field.setRange(0.0, 1.0)
         self.sim_friction_field.setDecimals(4)
         self.sim_friction_field.setValue(0.01)
-        sim_layout.addRow("Friction:", self.sim_friction_field)
+        sim_layout.addRow("Cart Friction:", self.sim_friction_field)
+
+        self.sim_damping_field = QDoubleSpinBox()
+        self.sim_damping_field.setRange(0.0, 1.0)
+        self.sim_damping_field.setDecimals(4)
+        self.sim_damping_field.setValue(0.01)
+        sim_layout.addRow("Pendulum Friction:", self.sim_damping_field)
 
         self.sim_randomize_checkbox = QCheckBox("Randomize Initial State")
         sim_layout.addRow(self.sim_randomize_checkbox)
 
-        self.sim_settings_group.setLayout(sim_layout)
+        self.sim_settings_group.setContentLayout(sim_layout)
         controls_layout.addWidget(self.sim_settings_group)
-        # --- End Simulation Settings Panel 
+
+        self.swingup_group = CollapsibleGroupBox("Swing-Up Settings")
+        swingup_layout = QFormLayout()
 
         self.swingup_checkbox = QCheckBox("Enable Swing-Up")
-        controls_layout.addWidget(self.swingup_checkbox)
+        swingup_layout.addRow(self.swingup_checkbox)
 
         self.catch_angle_field = QDoubleSpinBox()
         self.catch_angle_field.setDecimals(3)
         self.catch_angle_field.setRange(0.0, math.pi)
         self.catch_angle_field.setValue(0.2)
-        controls_layout.addWidget(QLabel("Catch Angle (rad):"))
-        controls_layout.addWidget(self.catch_angle_field)
+        swingup_layout.addRow("Catch Angle (rad):", self.catch_angle_field)
 
         self.catch_momentum_field = QDoubleSpinBox()
         self.catch_momentum_field.setDecimals(3)
         self.catch_momentum_field.setRange(0.0, 10.0)
         self.catch_momentum_field.setValue(0.2)
-        controls_layout.addWidget(QLabel("Catch Momentum (rad/s):"))
-        controls_layout.addWidget(self.catch_momentum_field)
+        swingup_layout.addRow("Catch Momentum (rad/s):", self.catch_momentum_field)
+
+        self.swingup_group.setContentLayout(swingup_layout)
+        controls_layout.addWidget(self.swingup_group)
+
 
         self.swingup_led = QLabel()
         self.swingup_led.setFixedSize(15, 15)
@@ -191,9 +206,14 @@ class MainWindow(QMainWindow):
 
         sidebar_widget = QWidget()
         sidebar_widget.setLayout(sidebar_layout)
-        sidebar_widget.setFixedWidth(140)
+        sidebar_widget.setFixedWidth(250)
 
-        master_layout.addLayout(controls_layout, stretch=1)
+        #master_layout.addLayout(controls_layout, stretch=1)
+        controls_widget = QWidget()
+        controls_widget.setLayout(controls_layout)
+        controls_widget.setFixedWidth(250)
+        master_layout.addWidget(controls_widget)
+
         master_layout.addLayout(center_layout, stretch=3)
         master_layout.addWidget(sidebar_widget)
 
@@ -201,6 +221,15 @@ class MainWindow(QMainWindow):
         self.timer.setInterval(10)
         self.timer.timeout.connect(self.update_plots)
         self.timer.start()
+
+    def get_sim_vars_from_ui(self):
+        return {
+            "cart_mass": self.sim_cmass_field.value(),
+            "pendulum_mass": self.sim_pmass_field.value(),
+            "length": self.sim_length_field.value(),
+            "friction": self.sim_friction_field.value(),
+            "damping": self.sim_damping_field.value()
+        }
 
     def open_settings_window(self):
         settings_dialog = SettingsWindow(self.settings, self)
@@ -321,7 +350,6 @@ class MainWindow(QMainWindow):
         if self.plot_area:
             self.plot_area.shared_vars = shared_vars
 
-
     def update_plots(self):
         """Update plots while swing-up is running."""
         if not self.shared_vars:
@@ -346,6 +374,9 @@ class MainWindow(QMainWindow):
         """Start the selected simulation or hardware backend and controller."""
         # === System selection ===
         system_choice = self.system_selector.currentText()
+        # Get user-defined sim vars and update settings (but don't persist to disk)
+        sim_vars = self.get_sim_vars_from_ui()
+        self.settings.update_sim_variables(sim_vars)
 
         if system_choice == "Linearized Simulation":
             if self.sim_proc and self.sim_proc.is_alive():
@@ -360,7 +391,7 @@ class MainWindow(QMainWindow):
                 "loop_time": multiprocessing.Value('d', 0.0)
             }
 
-            self.sim_proc = start_linear_simulation_backend(self.shared_vars)
+            self.sim_proc = start_linear_simulation_backend(self.shared_vars, sim_vars)
             self.connect_to_shared_vars(self.shared_vars)
 
         elif system_choice == "Nonlinear Simulation":
@@ -376,7 +407,7 @@ class MainWindow(QMainWindow):
                 "loop_time": multiprocessing.Value('d', 0.0)
             }
 
-            self.sim_proc = start_nonlinear_simulation_backend(self.shared_vars)
+            self.sim_proc = start_nonlinear_simulation_backend(self.shared_vars, sim_vars)
             self.connect_to_shared_vars(self.shared_vars)
 
         else:

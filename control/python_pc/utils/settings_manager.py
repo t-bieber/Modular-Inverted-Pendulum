@@ -36,14 +36,22 @@ class SettingsManager:
         except Exception as e:
             print(f"[ERROR] Failed to save settings: {e}")
 
-    def get_all_settings(self):
-        return self.settings
-
     def get_sim_variables(self):
         return self.settings.get("sim_variables", self.DEFAULT_SETTINGS["sim_variables"])
 
     def set_sim_variable(self, key, value):
-        self.settings.setdefault("sim_variables", {})[key] = value
+        if key not in self.DEFAULT_SETTINGS["sim_variables"]:
+            print(f"[WARNING] Unknown simulation variable: {key}")
+            return
+        expected_type = type(self.DEFAULT_SETTINGS["sim_variables"][key])
+        try:
+            self.settings.setdefault("sim_variables", {})[key] = expected_type(value)
+        except ValueError:
+            print(f"[ERROR] Invalid value for {key}: expected {expected_type.__name__}")
+
+    def update_sim_variables(self, new_values):
+        for key, value in new_values.items():
+            self.set_sim_variable(key, value)
 
     def get_visible_plots(self):
         return self.settings.get("visible_plots", self.DEFAULT_SETTINGS["visible_plots"])
@@ -68,3 +76,6 @@ class SettingsManager:
 
     def set_controller_params(self, controller_name, params):
         self.settings.setdefault("controller_params", {})[controller_name] = params
+
+    def get_all_settings(self):
+        return self.settings
