@@ -57,16 +57,16 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(master_layout)
         self.setCentralWidget(central_widget)
 
-        # Menu bar
+        # --- Menu bar ---
         menubar = self.menuBar()
-        file_menu = menubar.addMenu("&Settings")
+        settings_menu = menubar.addMenu("&Settings")
         settings_action = QAction("Settings", self)
         settings_action.triggered.connect(self.open_settings_window)
-        file_menu.addAction(settings_action)
-        about_action = QAction("About", self)
-        file_menu.addAction(about_action)
+        settings_menu.addAction(settings_action)
+        about_action = QAction("About", self) # no functionality yet
+        settings_menu.addAction(about_action)
 
-        # Controls column
+        # --- Controls column ---
         controls_layout = QVBoxLayout()
 
         self.start_button = QPushButton("Start")
@@ -75,22 +75,18 @@ class MainWindow(QMainWindow):
         controls_layout.addWidget(self.stop_button)
         self.start_button.clicked.connect(self.start_system)
         self.stop_button.clicked.connect(self.stop_system)
-
+            # SYSTEM SELECTION
         self.system_selector = QComboBox()
         self.system_selector.addItems(["Linearized Simulation", "Nonlinear Simulation", "COM5"])
         self.system_selector.setToolTip("Select the system to control (simulation or hardware).")
         controls_layout.addWidget(QLabel("System:"))
         controls_layout.addWidget(self.system_selector)
 
-        self.controller_param_fields = {}
-        # self.controller_group = QGroupBox("Tuning Parameters")
-        # self.controller_form_layout = QFormLayout()
-        # self.controller_group.setLayout(self.controller_form_layout)
-        # controls_layout.addWidget(self.controller_group)
-
+            # CONTROLLER SELECTION
+        controls_layout.addWidget(QLabel("Controller:"))
+        self.controller_param_fields = {} 
         self.controller_dropdown = QComboBox()
         self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
-        controls_layout.addWidget(QLabel("Controller:"))
         controls_layout.addWidget(self.controller_dropdown)
         
         self.controller_group = CollapsibleGroupBox("Controller Tuning")
@@ -108,34 +104,45 @@ class MainWindow(QMainWindow):
 
         self.sim_cmass_field = QDoubleSpinBox()
         self.sim_cmass_field.setRange(0.01, 10.0)
-        self.sim_cmass_field.setDecimals(3)
+        self.sim_cmass_field.setDecimals(2)
         self.sim_cmass_field.setValue(0.5)
-        sim_layout.addRow("Cart Mass (kg):", self.sim_cmass_field)
+        sim_layout.addRow("Cart mass (kg):", self.sim_cmass_field)
 
         self.sim_pmass_field = QDoubleSpinBox()
         self.sim_pmass_field.setRange(0.01, 10.0)
-        self.sim_pmass_field.setDecimals(3)
+        self.sim_pmass_field.setDecimals(2)
         self.sim_pmass_field.setValue(0.2)
-        sim_layout.addRow("Pendulum Mass (kg):", self.sim_pmass_field)
-
+        sim_layout.addRow("Pendulum mass (kg):", self.sim_pmass_field)
 
         self.sim_length_field = QDoubleSpinBox()
         self.sim_length_field.setRange(0.01, 2.0)
-        self.sim_length_field.setDecimals(3)
+        self.sim_length_field.setDecimals(2)
         self.sim_length_field.setValue(0.5)
         sim_layout.addRow("Length (m):", self.sim_length_field)
 
         self.sim_friction_field = QDoubleSpinBox()
         self.sim_friction_field.setRange(0.0, 1.0)
-        self.sim_friction_field.setDecimals(4)
+        self.sim_friction_field.setDecimals(2)
         self.sim_friction_field.setValue(0.01)
         sim_layout.addRow("Cart Friction:", self.sim_friction_field)
 
         self.sim_damping_field = QDoubleSpinBox()
         self.sim_damping_field.setRange(0.0, 1.0)
-        self.sim_damping_field.setDecimals(4)
+        self.sim_damping_field.setDecimals(2)
         self.sim_damping_field.setValue(0.01)
         sim_layout.addRow("Pendulum Friction:", self.sim_damping_field)
+
+        self.sim_initial_angle_field = QDoubleSpinBox()
+        self.sim_initial_angle_field.setRange(0.0, 359.99)
+        self.sim_initial_angle_field.setDecimals(2)
+        self.sim_initial_angle_field.setValue(180.00)
+        sim_layout.addRow("Initial angle (deg):", self.sim_damping_field)
+
+        self.sim_initial_speed_field = QDoubleSpinBox()
+        self.sim_initial_speed_field.setRange(0.0, 1.0)
+        self.sim_initial_speed_field.setDecimals(4)
+        self.sim_initial_speed_field.setValue(0.01)
+        sim_layout.addRow("Initial speed (deg7s):", self.sim_damping_field)
 
         self.sim_randomize_checkbox = QCheckBox("Randomize Initial State")
         sim_layout.addRow(self.sim_randomize_checkbox)
@@ -153,13 +160,13 @@ class MainWindow(QMainWindow):
         self.catch_angle_field.setDecimals(3)
         self.catch_angle_field.setRange(0.0, math.pi)
         self.catch_angle_field.setValue(0.2)
-        swingup_layout.addRow("Catch Angle (rad):", self.catch_angle_field)
+        swingup_layout.addRow("Catch Angle (deg):", self.catch_angle_field)
 
         self.catch_momentum_field = QDoubleSpinBox()
         self.catch_momentum_field.setDecimals(3)
         self.catch_momentum_field.setRange(0.0, 10.0)
         self.catch_momentum_field.setValue(0.2)
-        swingup_layout.addRow("Catch Momentum (rad/s):", self.catch_momentum_field)
+        swingup_layout.addRow("Catch Momentum (deg/s):", self.catch_momentum_field)
 
         self.swingup_group.setContentLayout(swingup_layout)
         controls_layout.addWidget(self.swingup_group)

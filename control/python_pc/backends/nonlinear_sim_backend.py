@@ -18,16 +18,23 @@ import numpy as np
 # instances.
 
 def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
-    """Integrate the nonlinear equations of motion in real-time."""
-    # Physical parameters
-    m_cart = sim_vars["cart_mass"]     # kg
-    m_pend = sim_vars["pendulum_mass"]     # kg
-    l = sim_vars["length"]          # m (length to pendulum center of mass)
-    g = 9.81           # m/s^2
-    b_cart = sim_vars["friction"]   # cart damping (linear friction)
-    b_pend = sim_vars["damping"]    # pendulum friction at pivot (angular)
+    """
+    Nonlinear physics loop for the cart-pendulum system.
+    - θ = 0 points straight down
+    - θ increases counterclockwise
+    - x > 0 means cart moves right
+    - θ̇ > 0 means pendulum rotates counterclockwise
+    """
 
-    dt = 0.01  # 10ms loop time
+    # Physical parameters
+    m_cart = sim_vars["cart_mass"]
+    m_pend = sim_vars["pendulum_mass"]
+    l = sim_vars["length"]  # Length to pendulum center of mass
+    g = 9.81
+    b_cart = sim_vars["friction"]
+    b_pend = sim_vars["damping"]
+
+    dt = 0.01  # 10 ms timestep
 
     # Initial state: x, x_dot, theta, theta_dot
     x = 0.0
@@ -77,7 +84,6 @@ def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
         # Sleep to maintain real-time simulation
         elapsed = time.perf_counter() - start_time
         time.sleep(max(0, dt - elapsed))
-
 
 def start_nonlinear_simulation_backend(shared_vars, sim_vars):
     """Launch ``nonlinear_physics_loop`` in a new ``Process`` and return it."""
