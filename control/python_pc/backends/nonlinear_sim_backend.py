@@ -20,8 +20,8 @@ import numpy as np
 def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
     """Integrate the nonlinear equations of motion in real-time."""
     # Physical parameters
-    m_cart = sim_vars["m_cart"]     # kg
-    m_pend = sim_vars["m_pend"]     # kg
+    m_cart = sim_vars["cart_mass"]     # kg
+    m_pend = sim_vars["pendulum_mass"]     # kg
     l = sim_vars["length"]          # m (length to pendulum center of mass)
     g = 9.81           # m/s^2
     b_cart = sim_vars["friction"]   # cart damping (linear friction)
@@ -32,8 +32,8 @@ def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
     # Initial state: x, x_dot, theta, theta_dot
     x = 0.0
     x_dot = 0.0
-    theta = math.pi # + np.random.uniform(-0.05, 0.05)  # upright + offset
-    theta_dot = 0 # + np.random.uniform(-0.1, 0.1)
+    theta = 0 + np.random.uniform(-0.2, 0.2)  # upright + offset
+    theta_dot = 0 + np.random.uniform(-0.1, 0.1)
 
     while True:
         start_time = time.perf_counter()
