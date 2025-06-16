@@ -1,0 +1,30 @@
+void setup() {
+  Serial.begin(115200);
+  while (!Serial); // Wait for Serial to be ready
+}
+
+void loop() {
+  // Read sensor values
+  uint16_t s1 = analogRead(A0);
+  uint16_t s2 = analogRead(A1);
+  s1 = map(s1, 0, 1023, 0, 9600);
+  s2 = map(s2, 0, 1023, 0, 9600);
+
+  // Send sensor data with sync byte 0xAA
+  Serial.write(0xAA); // sync byte
+  Serial.write((uint8_t*)&s1, 2);
+  Serial.write((uint8_t*)&s2, 2);
+
+  // Check if there's a control input (2 bytes) available from Python
+  int16_t control = 0;
+  if (Serial.available() >= 2) {
+    uint8_t bytes[2];
+    Serial.readBytes(bytes, 2);
+    control = *(int16_t*)bytes;  // Convert 2 bytes to int16_t (signed)
+    
+    // 🔧 Apply control to motor (pseudocode - replace with your motor driver call)
+    setMotorOutput(control);
+  }
+
+  delay(1); // optional: small delay for timing consistency
+}

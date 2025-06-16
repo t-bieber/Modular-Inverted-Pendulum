@@ -1,10 +1,5 @@
-
-"""Serial communication backend (not yet implemented)."""
-
-import multiprocessing
 import serial
 import struct
-import math
 
 PORT = 'COM5'  # Teensy USB port
 BAUDRATE = 115200
@@ -18,16 +13,19 @@ def find_last_valid_packet(buffer):
                 return x_pos, raw_angle
     return None
 
-def raw_angle_to_rad(raw_angle):
-    return raw_angle * 2*math.pi / 1200.0
+def raw_angle_to_degrees(raw):
+    return raw * 360.0 / 1200.0
 
-def hardwareUpdateLoop(position, angle, control_signal):
+def main():
     try:
         ser = serial.Serial(PORT, BAUDRATE, timeout=0)
         print(f"Connected to {PORT} at {BAUDRATE} baud.")
     except serial.SerialException as e:
         print(f"Failed to open serial port: {e}")
         return
+    
+    # Press any key to continue
+    input("Press Enter to start receiving data...")
 
     try:
         while True:
@@ -36,24 +34,12 @@ def hardwareUpdateLoop(position, angle, control_signal):
                 result = find_last_valid_packet(data)
                 if result:
                     x, raw_angle = result
-                    angle_rad = raw_angle_to_rad(raw_angle)
-                    position.value = x
-                    angle.value = angle_rad
+                    angle_deg = raw_angle_to_degrees(raw_angle)
+                    print(f"X = {x:4d}  |  Angle = {angle_deg:7.2f}°")
     except KeyboardInterrupt:
         print("\nStopped.")
     finally:
         ser.close()
 
-def start_serial_backend(shared_vars):
-    """Launch ``nonlinear_physics_loop`` in a new ``Process`` and return it."""
-    p = multiprocessing.Process(
-        target=hardwareUpdateLoop,
-        args=(
-            shared_vars["position"],
-            shared_vars["angle"],
-            shared_vars["control_signal"]
-        )
-    )
-    p.start()
-    # Caller can terminate or join this process as needed
-    return p
+if __name__ == "__main__":
+    main()

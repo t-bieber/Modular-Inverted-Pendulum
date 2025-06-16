@@ -24,6 +24,7 @@ from .plot_widgets import PlotContainer, PlotList, DropPlotArea
 from .settings_window import SettingsWindow
 from backends.linear_sim_backend import start_linear_simulation_backend
 from backends.nonlinear_sim_backend import start_nonlinear_simulation_backend
+from backends.serial_backend import start_serial_backend
 from utils.settings_manager import SettingsManager
 
 
@@ -76,7 +77,8 @@ class MainWindow(QMainWindow):
         self.stop_button.clicked.connect(self.stop_system)
 
         self.system_selector = QComboBox()
-        self.system_selector.addItems(["Linearized Simulation", "Nonlinear Simulation"])
+        self.system_selector.addItems(["Linearized Simulation", "Nonlinear Simulation", "COM5"])
+        self.system_selector.setToolTip("Select the system to control (simulation or hardware).")
         controls_layout.addWidget(QLabel("System:"))
         controls_layout.addWidget(self.system_selector)
 
@@ -410,9 +412,17 @@ class MainWindow(QMainWindow):
             self.sim_proc = start_nonlinear_simulation_backend(self.shared_vars, sim_vars)
             self.connect_to_shared_vars(self.shared_vars)
 
-        else:
+        elif system_choice == "COM5":
+            print("Connecting...")
+            self.shared_vars = {
+                "position": multiprocessing.Value('d', 0.0),
+                "angle": multiprocessing.Value('d', 0.0),
+                "control_signal": multiprocessing.Value('d', 0.0),
+                "loop_time": multiprocessing.Value('d', 0.0)
+            }
+
             print(f"Real hardware mode selected: {system_choice}")
-            # TODO: implement serial backend init
+            self.sim_proc = start_serial_backend(self.shared_vars)
         
         # === Controller selection ===
         controller_name = self.controller_dropdown.currentText()
