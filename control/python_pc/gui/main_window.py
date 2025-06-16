@@ -353,20 +353,6 @@ class MainWindow(QMainWindow):
                 values[name] = widget.text()
         return values
 
-    def connect_to_shared_vars(self, shared_vars):
-        self.shared_vars = shared_vars
-        self.visualizer.shared_vars = shared_vars
-        if self.plot_area:
-            self.plot_area.shared_vars = shared_vars
-
-    def update_plots(self):
-        """Update plots while swing-up is running."""
-        if not self.shared_vars:
-            return
-        if self.plot_area:
-            self.plot_area.update_all()
-        self.visualizer.update()
-
     def check_swingup_completion(self):
         if self.swingup_proc and not self.swingup_proc.is_alive():
             self.swingup_timer.stop()
@@ -430,6 +416,7 @@ class MainWindow(QMainWindow):
 
             print(f"Real hardware mode selected: {system_choice}")
             self.sim_proc = start_serial_backend(self.shared_vars)
+            self.connect_to_shared_vars(self.shared_vars)
         
         # === Controller selection ===
         controller_name = self.controller_dropdown.currentText()
