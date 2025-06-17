@@ -49,8 +49,8 @@ class PendulumVisualizer(QWidget):
         height = self.height()
         center_y = height // 2
 
-        # Scale x position (1 meter = 100 pixels)
-        x_scaled = width // 2 + x_pos * 500
+        # Scale x position
+        x_scaled = width // 2 + x_pos
 
         # Draw track
         painter.setPen(QPen(self.track_color, 2))

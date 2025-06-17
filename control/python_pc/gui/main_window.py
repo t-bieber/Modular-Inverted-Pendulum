@@ -190,7 +190,7 @@ class MainWindow(QMainWindow):
 
         # Dictionary of plot names -> (shared_var_key, y_range, value_getter)
         self.available_plots = {
-            "Cart Position": ("position", (-1.5, 1.5), lambda v: v["position"].value),
+            "Cart Position": ("position", (-350, 350), lambda v: v["position"].value),
             "Pendulum Angle": ("angle", (0, 2 * math.pi), lambda v: v["angle"].value),
             "Control Output": ("control", (-10, 10), lambda v: v["control_signal"].value),
             "Loop Execution Time": ("loop", (0, 0.02), lambda v: v["loop_time"].value),
