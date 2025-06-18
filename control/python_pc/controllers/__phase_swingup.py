@@ -7,24 +7,28 @@ keeping the cart within ±1m of the centre.  Once the pendulum is within
 the user defined ``catch_angle`` and ``catch_momentum`` thresholds the
 process terminates so that a stabilizing controller can take over.
 """
-#/VARS
-#/Catch angle: float
-#/Catch momentum: float
-#/ENDVARS
+# /VARS
+# /Catch angle: float
+# /Catch momentum: float
+# /ENDVARS
 
-import time
 import math
 import multiprocessing
+import time
 
 
-def phase_swingup(position, angle, control_signal, loop_time,
-                  catch_angle=0.2, catch_momentum=0.2,
-                  max_cart_range=0.5):
+def phase_swingup(
+    position,
+    angle,
+    control_signal,
+    loop_time,
+    catch_angle=0.2,
+    catch_momentum=0.2,
+    max_cart_range=0.5,
+):
     """
     Symmetric phase-based swing-up controller with a kick to initiate motion.
     """
-    import time
-    import math
 
     dt = 0.01
     prev_angle = angle.value
@@ -97,8 +101,7 @@ def start_phase_swingup(shared_vars, catch_angle, catch_momentum):
             shared_vars["loop_time"],
             catch_angle,
             catch_momentum,
-        )
+        ),
     )
     p.start()
     return p  # caller monitors process to know when swing-up finished
-

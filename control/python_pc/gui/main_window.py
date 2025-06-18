@@ -2,30 +2,48 @@
 main_window.py
 
 This file implements the main GUI window for the Modular Inverted Pendulum project.
-It provides controls for starting/stopping the simulation or hardware, selecting controllers, and enabling swing-up mode.
-The right side of the window displays real-time plots of system variables and a visualizer for the cart-pendulum system.
-The GUI communicates with simulation or hardware backends using shared variables and multiprocessing.
+It provides controls for starting/stopping the simulation or hardware, selecting
+controllers, and enabling swing-up mode on the left side.
+The right side of the window displays real-time plots of system variables
+and a visualizer for the cart-pendulum system.
+The GUI communicates with simulation or hardware backends using shared variables
+and multiprocessing.
 """
+
 ### === external imports ===
-import sys
-import os
-import math
 import importlib
+import math
 import multiprocessing
-from PyQt5.QtCore import Qt, QTimer, QEvent
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
-    QCheckBox, QLabel, QLineEdit, QFormLayout, QGroupBox, QSpinBox, QDoubleSpinBox, QAction,
-)
-### === internal imports ===
-from .collapsible_groupbox import CollapsibleGroupBox
-from .visualizer import PendulumVisualizer
-from .plot_widgets import PlotContainer, PlotList, DropPlotArea
-from .settings_window import SettingsWindow
+import os
+import sys
+
 from backends.linear_sim_backend import start_linear_simulation_backend
 from backends.nonlinear_sim_backend import start_nonlinear_simulation_backend
 from backends.serial_backend import start_serial_backend
+from PyQt5.QtCore import QEvent, QTimer
+from PyQt5.QtWidgets import (
+    QAction,
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
 from utils.settings_manager import SettingsManager
+
+### === internal imports ===
+from .collapsible_groupbox import CollapsibleGroupBox
+from .plot_widgets import DropPlotArea, PlotList
+from .settings_window import SettingsWindow
+from .visualizer import PendulumVisualizer
 
 
 class MainWindow(QMainWindow):
@@ -47,8 +65,9 @@ class MainWindow(QMainWindow):
         self.swingup_timer = None
 
         self.led_style = lambda active: (
-            "background-color: #00cc00; border-radius: 7px;" if active else
-            "background-color: #003300; border-radius: 7px;"
+            "background-color: #00cc00; border-radius: 7px;"
+            if active
+            else "background-color: #003300; border-radius: 7px;"
         )
 
         # --- Build UI layout ---
@@ -63,7 +82,7 @@ class MainWindow(QMainWindow):
         settings_action = QAction("Settings", self)
         settings_action.triggered.connect(self.open_settings_window)
         settings_menu.addAction(settings_action)
-        about_action = QAction("About", self) # no functionality yet
+        about_action = QAction("About", self)  # no functionality yet
         settings_menu.addAction(about_action)
 
         # --- Controls column ---
@@ -75,20 +94,24 @@ class MainWindow(QMainWindow):
         controls_layout.addWidget(self.stop_button)
         self.start_button.clicked.connect(self.start_system)
         self.stop_button.clicked.connect(self.stop_system)
-            # SYSTEM SELECTION
+        # SYSTEM SELECTION
         self.system_selector = QComboBox()
-        self.system_selector.addItems(["Linearized Simulation", "Nonlinear Simulation", "COM5"])
-        self.system_selector.setToolTip("Select the system to control (simulation or hardware).")
+        self.system_selector.addItems(
+            ["Linearized Simulation", "Nonlinear Simulation", "COM5"]
+        )
+        self.system_selector.setToolTip(
+            "Select the system to control (simulation or hardware)."
+        )
         controls_layout.addWidget(QLabel("System:"))
         controls_layout.addWidget(self.system_selector)
 
-            # CONTROLLER SELECTION
+        # CONTROLLER SELECTION
         controls_layout.addWidget(QLabel("Controller:"))
-        self.controller_param_fields = {} 
+        self.controller_param_fields = {}
         self.controller_dropdown = QComboBox()
         self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
         controls_layout.addWidget(self.controller_dropdown)
-        
+
         self.controller_group = CollapsibleGroupBox("Controller Tuning")
         self.controller_form_layout = QFormLayout()
         self.controller_group.setContentLayout(self.controller_form_layout)
@@ -171,7 +194,6 @@ class MainWindow(QMainWindow):
         self.swingup_group.setContentLayout(swingup_layout)
         controls_layout.addWidget(self.swingup_group)
 
-
         self.swingup_led = QLabel()
         self.swingup_led.setFixedSize(15, 15)
         self.swingup_led.setStyleSheet(self.led_style(False))
@@ -192,9 +214,17 @@ class MainWindow(QMainWindow):
         self.available_plots = {
             "Cart Position": ("position", (-350, 350), lambda v: v["position"].value),
             "Pendulum Angle": ("angle", (0, 2 * math.pi), lambda v: v["angle"].value),
-            "Control Output": ("control", (-10, 10), lambda v: v["control_signal"].value),
+            "Control Output": (
+                "control",
+                (-10, 10),
+                lambda v: v["control_signal"].value,
+            ),
             "Loop Execution Time": ("loop", (0, 0.02), lambda v: v["loop_time"].value),
-            "Angular Momentum": ("momentum", (-1, 1), lambda v: v["angle"].value * v["control_signal"].value),
+            "Angular Momentum": (
+                "momentum",
+                (-1, 1),
+                lambda v: v["angle"].value * v["control_signal"].value,
+            ),
         }
 
         self.plot_area = DropPlotArea(self.available_plots, self.shared_vars)
@@ -217,7 +247,7 @@ class MainWindow(QMainWindow):
         sidebar_widget.setLayout(sidebar_layout)
         sidebar_widget.setFixedWidth(250)
 
-        #master_layout.addLayout(controls_layout, stretch=1)
+        # master_layout.addLayout(controls_layout, stretch=1)
         controls_widget = QWidget()
         controls_widget.setLayout(controls_layout)
         controls_widget.setFixedWidth(250)
@@ -237,7 +267,7 @@ class MainWindow(QMainWindow):
             "pendulum_mass": self.sim_pmass_field.value(),
             "length": self.sim_length_field.value(),
             "friction": self.sim_friction_field.value(),
-            "damping": self.sim_damping_field.value()
+            "damping": self.sim_damping_field.value(),
         }
 
     def open_settings_window(self):
@@ -262,7 +292,7 @@ class MainWindow(QMainWindow):
         """Scan the controllers directory for available modules."""
         if controller_dir is None:
             # Works both when bundled and in development
-            if getattr(sys, 'frozen', False):
+            if getattr(sys, "frozen", False):
                 # If bundled by PyInstaller
                 base_dir = sys._MEIPASS
             else:
@@ -275,11 +305,13 @@ class MainWindow(QMainWindow):
         controller_params = {}
 
         if not os.path.isdir(controller_dir):
-            print(f"[ERROR] Controller directory not found: {base_dir}, {controller_dir}")
+            print(
+                f"[ERROR] Controller directory not found: {base_dir}, {controller_dir}"
+            )
             return controllers, controller_params
-    
+
         for filename in os.listdir(controller_dir):
-            if ((filename.startswith("__") == False) and (filename.endswith(".py"))):
+            if (not filename.startswith("__")) and (filename.endswith(".py")):
                 if filename.endswith(".py"):
                     controller_name = filename[:-3]  # Remove .py extension
                     controllers.append(controller_name)
@@ -300,14 +332,17 @@ class MainWindow(QMainWindow):
                                 var_line = line[2:].strip()  # remove "#/"
                                 if ":" in var_line:
                                     param_name, var_type = var_line.split(":", 1)
-                                    params.append((param_name.strip(), var_type.strip()))
+                                    params.append(
+                                        (param_name.strip(), var_type.strip())
+                                    )
                                 else:
-                                    params.append((var_line.strip(), "float"))  # default to float
+                                    params.append(
+                                        (var_line.strip(), "float")
+                                    )  # default to float
                             except ValueError:
                                 print(f"[WARNING] Could not parse line: {line}")
 
                     controller_params[controller_name] = params
-
 
         return controllers, controller_params
 
@@ -318,13 +353,13 @@ class MainWindow(QMainWindow):
             if widget:
                 widget.setParent(None)
         self.controller_param_fields.clear()
-    
+
         # Load parameter list: [("Kp", "float"), ("Enabled", "bool"), ...]
         param_list = self.controller_params.get(controller_name, [])
-    
+
         for param_name, param_type in param_list:
             label = QLabel(param_name + ":")
-    
+
             if param_type == "float":
                 field = QDoubleSpinBox()
                 field.setDecimals(4)
@@ -338,7 +373,7 @@ class MainWindow(QMainWindow):
                 field = QCheckBox()
             else:  # fallback: string
                 field = QLineEdit()
-    
+
             self.controller_form_layout.addRow(label, field)
             self.controller_param_fields[param_name] = field
 
@@ -364,7 +399,7 @@ class MainWindow(QMainWindow):
                     self.shared_vars, *self.controller_param_values.values()
                 )
                 self.controller_led.setStyleSheet(self.led_style(True))
-    
+
     def start_system(self):
         """Start the selected simulation or hardware backend and controller."""
         # === System selection ===
@@ -380,10 +415,10 @@ class MainWindow(QMainWindow):
 
             print("Starting simulation...")
             self.shared_vars = {
-                "position": multiprocessing.Value('d', 0.0),
-                "angle": multiprocessing.Value('d', 0.0),
-                "control_signal": multiprocessing.Value('d', 0.0),
-                "loop_time": multiprocessing.Value('d', 0.0)
+                "position": multiprocessing.Value("d", 0.0),
+                "angle": multiprocessing.Value("d", 0.0),
+                "control_signal": multiprocessing.Value("d", 0.0),
+                "loop_time": multiprocessing.Value("d", 0.0),
             }
 
             self.sim_proc = start_linear_simulation_backend(self.shared_vars, sim_vars)
@@ -396,34 +431,38 @@ class MainWindow(QMainWindow):
 
             print("Starting nonlinear simulation...")
             self.shared_vars = {
-                "position": multiprocessing.Value('d', 0.0),
-                "angle": multiprocessing.Value('d', 0.0),
-                "control_signal": multiprocessing.Value('d', 0.0),
-                "loop_time": multiprocessing.Value('d', 0.0)
+                "position": multiprocessing.Value("d", 0.0),
+                "angle": multiprocessing.Value("d", 0.0),
+                "control_signal": multiprocessing.Value("d", 0.0),
+                "loop_time": multiprocessing.Value("d", 0.0),
             }
 
-            self.sim_proc = start_nonlinear_simulation_backend(self.shared_vars, sim_vars)
+            self.sim_proc = start_nonlinear_simulation_backend(
+                self.shared_vars, sim_vars
+            )
             self.connect_to_shared_vars(self.shared_vars)
 
         elif system_choice == "COM5":
             print("Connecting...")
             self.shared_vars = {
-                "position": multiprocessing.Value('d', 0.0),
-                "angle": multiprocessing.Value('d', 0.0),
-                "control_signal": multiprocessing.Value('d', 0.0),
-                "loop_time": multiprocessing.Value('d', 0.0)
+                "position": multiprocessing.Value("d", 0.0),
+                "angle": multiprocessing.Value("d", 0.0),
+                "control_signal": multiprocessing.Value("d", 0.0),
+                "loop_time": multiprocessing.Value("d", 0.0),
             }
 
             print(f"Real hardware mode selected: {system_choice}")
             self.sim_proc = start_serial_backend(self.shared_vars)
             self.connect_to_shared_vars(self.shared_vars)
-        
+
         # === Controller selection ===
         controller_name = self.controller_dropdown.currentText()
         param_values = self.get_controller_param_values()
 
         try:
-            controller_module = importlib.import_module(f"controllers.{controller_name}")
+            controller_module = importlib.import_module(
+                f"controllers.{controller_name}"
+            )
             start_func_name = f"start_{controller_name}"
             start_func = getattr(controller_module, start_func_name)
 
@@ -445,13 +484,14 @@ class MainWindow(QMainWindow):
                 self.swingup_led.setStyleSheet(self.led_style(True))
                 self.controller_led.setStyleSheet(self.led_style(False))
             else:
-                self.controller_proc = start_func(self.shared_vars, *param_values.values())
+                self.controller_proc = start_func(
+                    self.shared_vars, *param_values.values()
+                )
                 self.controller_led.setStyleSheet(self.led_style(True))
                 self.swingup_led.setStyleSheet(self.led_style(False))
 
         except Exception as e:
             print(f"[ERROR] Failed to start controller '{controller_name}': {e}")
-
 
     def stop_system(self):
         """Terminate any running simulation and controllers."""
@@ -480,6 +520,7 @@ class MainWindow(QMainWindow):
                 self.resize(1200, 700)
         super().changeEvent(event)
 
+
 def run_gui(shared_vars=None):
     """Convenience function for launching ``MainWindow``."""
     app = QApplication(sys.argv)
@@ -490,4 +531,3 @@ def run_gui(shared_vars=None):
         window.connect_to_shared_vars(shared_vars)
     window.show()
     sys.exit(app.exec_())
-

@@ -1,7 +1,13 @@
-from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QDoubleSpinBox, QPushButton, QLabel
-)
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (
+    QDialog,
+    QDoubleSpinBox,
+    QFormLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+)
+
 
 class SettingsWindow(QDialog):
     def __init__(self, settings_manager, parent=None):

@@ -11,6 +11,7 @@ Author: Tom Bieber
 """
 
 import multiprocessing
+
 # ``run_gui`` lives in the ``gui`` module within the ``gui`` package. Importing
 # it explicitly from ``gui.gui`` avoids relying on package ``__init__`` exports.
 from gui.gui import run_gui
@@ -23,6 +24,7 @@ def main() -> None:
     multiprocessing.set_start_method("spawn")
     # Launch the Qt event loop defined in ``gui.gui``
     run_gui()
+
 
 if __name__ == "__main__":
     # When executed directly ``main()`` launches the application.

@@ -1,30 +1,39 @@
 """Serial communication backend with control signal sending."""
 
-import multiprocessing
-import serial
-import struct
 import math
+import multiprocessing
+import struct
 from math import degrees
 
-PORT = 'COM5'  # Teensy USB port
+import serial
+
+PORT = "COM5"  # Teensy USB port
 BAUDRATE = 115200
 
 MAX_ANGLE_DEG = 15
 MAX_XPOS_MM = 220
 
+
 def find_last_valid_packet(buffer):
     for i in range(len(buffer) - 5, -1, -1):
         if buffer[i] == 0xAA:
-            packet = buffer[i+1:i+5]
+            packet = buffer[i + 1 : i + 5]
             if len(packet) == 4:
-                x_pos, raw_angle = struct.unpack('<HH', packet)
+                x_pos, raw_angle = struct.unpack("<HH", packet)
                 return x_pos, raw_angle
     return None
+
 
 def raw_angle_to_rad(raw_angle):
     return raw_angle * 2 * math.pi / 1200.0
 
-def scale_control_output(raw_output: float, max_input: float = 100.0, threshold: int = 10, max_output: int = 255) -> int:
+
+def scale_control_output(
+    raw_output: float,
+    max_input: float = 100.0,
+    threshold: int = 10,
+    max_output: int = 255,
+) -> int:
     """
     Scale a control signal to motor output range, compensating for static friction.
     """
@@ -43,14 +52,16 @@ def scale_control_output(raw_output: float, max_input: float = 100.0, threshold:
     # print(f"Raw output: {raw_output}, Scaled output: {scaled}")
     return scaled
 
+
 def send_control_signal(ser, control_value):
     """
     Sends a signed 16-bit control signal to Teensy.
     Format: [0x55][int16 low byte][int16 high byte]
     """
     control_value = int(max(-255, min(255, control_value)))
-    packet = struct.pack('<bh', 0x55, control_value)
+    packet = struct.pack("<bh", 0x55, control_value)
     ser.write(packet)
+
 
 def hardwareUpdateLoop(position, angle, control_signal):
     try:
@@ -75,10 +86,15 @@ def hardwareUpdateLoop(position, angle, control_signal):
                     # scale controller output to motor range
                     current_control = scale_control_output(control_signal.value)
 
-                    # print(f"angle: {abs(degrees(angle.value)):.2f} deg, position: {abs(position.value):.2f} mm, control: {current_control}")
                     if current_control != last_sent_control:
-                        if abs(degrees(angle.value)) <= 180 + MAX_ANGLE_DEG and abs(degrees(angle.value)) >= 180 - MAX_ANGLE_DEG and abs(position.value) <= MAX_XPOS_MM:
-                            send_control_signal(ser, -current_control) # negative because of wiring
+                        if (
+                            abs(degrees(angle.value)) <= 180 + MAX_ANGLE_DEG
+                            and abs(degrees(angle.value)) >= 180 - MAX_ANGLE_DEG
+                            and abs(position.value) <= MAX_XPOS_MM
+                        ):
+                            send_control_signal(
+                                ser, -current_control
+                            )  # negative because of wiring
                             # print("yeppp")
                         else:
                             # print("nope")
@@ -93,14 +109,15 @@ def hardwareUpdateLoop(position, angle, control_signal):
         send_control_signal(ser, 0)  # stop motor on exit
         ser.close()
 
+
 def start_serial_backend(shared_vars):
     p = multiprocessing.Process(
         target=hardwareUpdateLoop,
         args=(
             shared_vars["position"],
             shared_vars["angle"],
-            shared_vars["control_signal"]
-        )
+            shared_vars["control_signal"],
+        ),
     )
     p.start()
     return p

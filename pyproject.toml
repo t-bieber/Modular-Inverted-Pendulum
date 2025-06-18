@@ -1,0 +1,2 @@
+[tool.ruff]
+lint.select = ["F", "E", "I", "B"]  # F: Pyflakes, E: pycodestyle, I: isort, B: Bugbear

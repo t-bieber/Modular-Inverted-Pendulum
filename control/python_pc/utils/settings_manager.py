@@ -1,18 +1,19 @@
 import json
 import os
 
+
 class SettingsManager:
     DEFAULT_SETTINGS = {
         "sim_variables": {
             "mass": 0.2,
             "length": 0.5,
             "damping": 0.01,
-            "friction": 0.01
+            "friction": 0.01,
         },
         "visible_plots": ["Cart Position", "Pendulum Angle"],
         "plot_order": ["Cart Position", "Pendulum Angle"],
         "last_controller": "pid_controller",
-        "controller_params": {}
+        "controller_params": {},
     }
 
     def __init__(self, filename="settings.json"):
@@ -37,7 +38,9 @@ class SettingsManager:
             print(f"[ERROR] Failed to save settings: {e}")
 
     def get_sim_variables(self):
-        return self.settings.get("sim_variables", self.DEFAULT_SETTINGS["sim_variables"])
+        return self.settings.get(
+            "sim_variables", self.DEFAULT_SETTINGS["sim_variables"]
+        )
 
     def set_sim_variable(self, key, value):
         if key not in self.DEFAULT_SETTINGS["sim_variables"]:
@@ -54,7 +57,9 @@ class SettingsManager:
             self.set_sim_variable(key, value)
 
     def get_visible_plots(self):
-        return self.settings.get("visible_plots", self.DEFAULT_SETTINGS["visible_plots"])
+        return self.settings.get(
+            "visible_plots", self.DEFAULT_SETTINGS["visible_plots"]
+        )
 
     def set_visible_plots(self, plot_list):
         self.settings["visible_plots"] = plot_list
@@ -66,7 +71,9 @@ class SettingsManager:
         self.settings["plot_order"] = order_list
 
     def get_last_controller(self):
-        return self.settings.get("last_controller", self.DEFAULT_SETTINGS["last_controller"])
+        return self.settings.get(
+            "last_controller", self.DEFAULT_SETTINGS["last_controller"]
+        )
 
     def set_last_controller(self, name):
         self.settings["last_controller"] = name

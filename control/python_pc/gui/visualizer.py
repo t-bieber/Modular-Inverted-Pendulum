@@ -5,9 +5,10 @@ Widget for visualizing the cart-pendulum system state.
 """
 
 import math
+
+from PyQt5.QtCore import QPointF, QRectF, Qt
+from PyQt5.QtGui import QBrush, QColor, QPainter, QPen
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtGui import QPainter, QPen, QBrush, QColor
-from PyQt5.QtCore import Qt, QPointF, QRectF
 
 
 class PendulumVisualizer(QWidget):

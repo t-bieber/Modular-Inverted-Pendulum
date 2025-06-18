@@ -1,20 +1,24 @@
-import serial
 import struct
 
-PORT = 'COM5'  # Teensy USB port
+import serial
+
+PORT = "COM5"  # Teensy USB port
 BAUDRATE = 115200
+
 
 def find_last_valid_packet(buffer):
     for i in range(len(buffer) - 5, -1, -1):
         if buffer[i] == 0xAA:
-            packet = buffer[i+1:i+5]
+            packet = buffer[i + 1 : i + 5]
             if len(packet) == 4:
-                x_pos, raw_angle = struct.unpack('<HH', packet)
+                x_pos, raw_angle = struct.unpack("<HH", packet)
                 return x_pos, raw_angle
     return None
 
+
 def raw_angle_to_degrees(raw):
     return raw * 360.0 / 1200.0
+
 
 def main():
     try:
@@ -23,7 +27,7 @@ def main():
     except serial.SerialException as e:
         print(f"Failed to open serial port: {e}")
         return
-    
+
     # Press any key to continue
     input("Press Enter to start receiving data...")
 
@@ -40,6 +44,7 @@ def main():
         print("\nStopped.")
     finally:
         ser.close()
+
 
 if __name__ == "__main__":
     main()

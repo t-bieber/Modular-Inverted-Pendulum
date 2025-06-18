@@ -11,22 +11,32 @@ Structure:
 
 The inner loop runs every 10 ms by default.
 """
-#/VARS
-#/Outer Kp: float
-#/Outer Ki: float
-#/Outer Kd: float
-#/Inner Kp: float
-#/Inner Ki: float
-#/Inner Kd: float
-#/ENDVARS
+# /VARS
+# /Outer Kp: float
+# /Outer Ki: float
+# /Outer Kd: float
+# /Inner Kp: float
+# /Inner Ki: float
+# /Inner Kd: float
+# /ENDVARS
 
-import time
 import math
 import multiprocessing
+import time
 
-def cascadedpid_controller(position, angle, control_signal, loop_time,
-                             outer_Kp=1.0, outer_Ki=0.0, outer_Kd=0.0,
-                             inner_Kp=20.0, inner_Ki=0.0, inner_Kd=1.0):
+
+def cascadedpid_controller(
+    position,
+    angle,
+    control_signal,
+    loop_time,
+    outer_Kp=1.0,
+    outer_Ki=0.0,
+    outer_Kd=0.0,
+    inner_Kp=20.0,
+    inner_Ki=0.0,
+    inner_Kd=1.0,
+):
     """Run a cascaded PID controller in its own loop."""
     # PID state
     dt = 0.01  # 10 ms loop
@@ -49,7 +59,9 @@ def cascadedpid_controller(position, angle, control_signal, loop_time,
         pos_error = pos_setpoint - position.value
         pos_integral += pos_error * dt
         pos_derivative = (pos_error - pos_prev_error) / dt
-        desired_angle = outer_Kp * pos_error + outer_Ki * pos_integral + outer_Kd * pos_derivative
+        desired_angle = (
+            outer_Kp * pos_error + outer_Ki * pos_integral + outer_Kd * pos_derivative
+        )
         pos_prev_error = pos_error
 
         # Clamp desired angle to a realistic range
@@ -62,7 +74,11 @@ def cascadedpid_controller(position, angle, control_signal, loop_time,
         angle_error = desired_angle - angle.value
         angle_integral += angle_error * dt
         angle_derivative = (angle_error - angle_prev_error) / dt
-        output = inner_Kp * angle_error + inner_Ki * angle_integral + inner_Kd * angle_derivative
+        output = (
+            inner_Kp * angle_error
+            + inner_Ki * angle_integral
+            + inner_Kd * angle_derivative
+        )
         control_signal.value = output
         angle_prev_error = angle_error
 
@@ -71,7 +87,10 @@ def cascadedpid_controller(position, angle, control_signal, loop_time,
         loop_time.value = elapsed  # expose loop duration to the GUI
         time.sleep(max(0, dt - elapsed))
 
-def start_cascadedpid_controller(shared_vars, outer_Kp, outer_Ki, outer_Kd, inner_Kp, inner_Ki, inner_Kd):
+
+def start_cascadedpid_controller(
+    shared_vars, outer_Kp, outer_Ki, outer_Kd, inner_Kp, inner_Ki, inner_Kd
+):
     """Helper to spawn ``cascadedpid_controller`` as a separate process."""
     p = multiprocessing.Process(
         target=cascadedpid_controller,
@@ -80,9 +99,13 @@ def start_cascadedpid_controller(shared_vars, outer_Kp, outer_Ki, outer_Kd, inne
             shared_vars["angle"],
             shared_vars["control_signal"],
             shared_vars["loop_time"],
-            outer_Kp, outer_Ki, outer_Kd,
-            inner_Kp, inner_Ki, inner_Kd
-        )
+            outer_Kp,
+            outer_Ki,
+            outer_Kd,
+            inner_Kp,
+            inner_Ki,
+            inner_Kd,
+        ),
     )
     p.start()
     return p  # return handle so caller can terminate/join

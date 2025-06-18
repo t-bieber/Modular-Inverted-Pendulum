@@ -1,7 +1,5 @@
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QToolButton, QLabel, QHBoxLayout, QFrame
-)
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QToolButton, QVBoxLayout, QWidget
 
 
 class CollapsibleGroupBox(QWidget):

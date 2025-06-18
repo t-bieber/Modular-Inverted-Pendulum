@@ -2,20 +2,23 @@
 nonlinear_sim_backend.py
 
 Simulates the full nonlinear dynamics of the cart-pendulum system.
-Unlike the linearized model, this version captures behavior at large angles and swing-up.
+Unlike the linearized model, this version captures behavior at large
+angles and swing-up.
 
 This backend runs in its own process and updates shared multiprocessing variables.
 """
 
-import time
 import math
 import multiprocessing
+import time
+
 import numpy as np
 
 # This backend uses the full nonlinear equations of motion. It is a bit more
 # computationally expensive than the linear version but allows testing swing-up
 # behaviour. The process runs independently and shares state via ``Value``
 # instances.
+
 
 def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
     """
@@ -29,7 +32,7 @@ def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
     # Physical parameters
     m_cart = sim_vars["cart_mass"]
     m_pend = sim_vars["pendulum_mass"]
-    l = sim_vars["length"]  # Length to pendulum center of mass
+    pendulum_length = sim_vars["length"]  # Length to pendulum center of mass
     g = 9.81
     b_cart = sim_vars["friction"]
     b_pend = sim_vars["damping"]
@@ -51,19 +54,17 @@ def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
         cos_theta = math.cos(theta)
 
         total_mass = m_cart + m_pend
-        pendulum_mass_length = m_pend * l
+        pendulum_mass_length = m_pend * pendulum_length
 
         # Cart friction in `temp`
-        temp = (u + pendulum_mass_length * theta_dot**2 * sin_theta - b_cart * x_dot) / total_mass
+        temp = (
+            u + pendulum_mass_length * theta_dot**2 * sin_theta - b_cart * x_dot
+        ) / total_mass
 
         # Add pendulum pivot friction to theta_acc
         theta_acc = (
-            g * sin_theta
-            + cos_theta * temp
-            - b_pend * theta_dot / pendulum_mass_length
-        ) / (
-            l * (4/3 - (m_pend * cos_theta**2) / total_mass)
-        )
+            g * sin_theta + cos_theta * temp - b_pend * theta_dot / pendulum_mass_length
+        ) / (pendulum_length * (4 / 3 - (m_pend * cos_theta**2) / total_mass))
 
         x_acc = temp - (pendulum_mass_length * theta_acc * cos_theta) / total_mass
 
@@ -85,6 +86,7 @@ def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
         elapsed = time.perf_counter() - start_time
         time.sleep(max(0, dt - elapsed))
 
+
 def start_nonlinear_simulation_backend(shared_vars, sim_vars):
     """Launch ``nonlinear_physics_loop`` in a new ``Process`` and return it."""
     p = multiprocessing.Process(
@@ -93,8 +95,8 @@ def start_nonlinear_simulation_backend(shared_vars, sim_vars):
             shared_vars["position"],
             shared_vars["angle"],
             shared_vars["control_signal"],
-            sim_vars
-        )
+            sim_vars,
+        ),
     )
     p.start()
     # Caller can terminate or join this process as needed
