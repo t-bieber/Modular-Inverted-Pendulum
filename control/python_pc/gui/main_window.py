@@ -136,13 +136,13 @@ class MainWindow(QMainWindow):
         self.sim_initial_angle_field.setRange(0.0, 359.99)
         self.sim_initial_angle_field.setDecimals(2)
         self.sim_initial_angle_field.setValue(180.00)
-        sim_layout.addRow("Initial angle (deg):", self.sim_damping_field)
+        sim_layout.addRow("Initial angle (deg):", self.sim_initial_angle_field)
 
         self.sim_initial_speed_field = QDoubleSpinBox()
         self.sim_initial_speed_field.setRange(0.0, 1.0)
         self.sim_initial_speed_field.setDecimals(4)
         self.sim_initial_speed_field.setValue(0.01)
-        sim_layout.addRow("Initial speed (deg7s):", self.sim_damping_field)
+        sim_layout.addRow("Initial speed (deg7s):", self.sim_initial_speed_field)
 
         self.sim_randomize_checkbox = QCheckBox("Randomize Initial State")
         sim_layout.addRow(self.sim_randomize_checkbox)
