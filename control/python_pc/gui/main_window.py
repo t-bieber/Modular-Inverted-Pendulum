@@ -32,6 +32,8 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMenu,
+    QMenuBar,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -47,7 +49,7 @@ from .visualizer import PendulumVisualizer
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings: SettingsManager = None):
+    def __init__(self, settings: SettingsManager | None = None):
         super().__init__()
         self.setWindowTitle("Modular Inverted Pendulum Control")
         self.setMinimumSize(800, 600)
@@ -77,8 +79,12 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
         # --- Menu bar ---
-        menubar = self.menuBar()
-        settings_menu = menubar.addMenu("&Settings")
+        menubar: QMenuBar = self.menuBar()
+        if menubar is None:
+            raise RuntimeError("Menu bar not initialized correctly")
+        settings_menu: QMenu = menubar.addMenu("&Settings")
+        if settings_menu is None:
+            raise RuntimeError("Failed to create Settings menu")
         settings_action = QAction("Settings", self)
         settings_action.triggered.connect(self.open_settings_window)
         settings_menu.addAction(settings_action)
@@ -290,14 +296,10 @@ class MainWindow(QMainWindow):
 
     def get_available_controllers(self, controller_dir=None):
         """Scan the controllers directory for available modules."""
-        if controller_dir is None:
-            # Works both when bundled and in development
-            if getattr(sys, "frozen", False):
-                # If bundled by PyInstaller
-                base_dir = sys._MEIPASS
-            else:
-                base_dir = os.path.dirname(os.path.abspath(__file__))
 
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        if controller_dir is None:
             controller_dir = os.path.join(base_dir, "..", "controllers")
             controller_dir = os.path.abspath(controller_dir)
 
@@ -323,13 +325,13 @@ class MainWindow(QMainWindow):
                     params = []
                     for line in lines:
                         line = line.strip()
-                        if line == "#/VARS":
+                        if line == "# /VARS":
                             inside_block = True
-                        elif line == "#/ENDVARS":
+                        elif line == "# /ENDVARS":
                             break
-                        elif inside_block and line.startswith("#/"):
+                        elif inside_block and line.startswith("# /"):
                             try:
-                                var_line = line[2:].strip()  # remove "#/"
+                                var_line = line[3:].strip()  # remove "# /"
                                 if ":" in var_line:
                                     param_name, var_type = var_line.split(":", 1)
                                     params.append(
@@ -349,9 +351,11 @@ class MainWindow(QMainWindow):
     def display_param_fields(self, controller_name):
         # Clear previous inputs
         for i in reversed(range(self.controller_form_layout.count())):
-            widget = self.controller_form_layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
+            item = self.controller_form_layout.itemAt(i)
+            if item is not None:
+                widget: QWidget = item.widget()
+                if widget:
+                    widget.setParent(None)
         self.controller_param_fields.clear()
 
         # Load parameter list: [("Kp", "float"), ("Enabled", "bool"), ...]
@@ -390,11 +394,12 @@ class MainWindow(QMainWindow):
 
     def check_swingup_completion(self):
         if self.swingup_proc and not self.swingup_proc.is_alive():
-            self.swingup_timer.stop()
+            if self.swingup_timer is not None:
+                self.swingup_timer.stop()
             self.swingup_proc.join()
             self.swingup_proc = None
             self.swingup_led.setStyleSheet(self.led_style(False))
-            if self.controller_start_func:
+            if self.controller_start_func and self.controller_param_values is not None:
                 self.controller_proc = self.controller_start_func(
                     self.shared_vars, *self.controller_param_values.values()
                 )
@@ -406,7 +411,8 @@ class MainWindow(QMainWindow):
         system_choice = self.system_selector.currentText()
         # Get user-defined sim vars and update settings (but don't persist to disk)
         sim_vars = self.get_sim_vars_from_ui()
-        self.settings.update_sim_variables(sim_vars)
+        if self.settings is not None:
+            self.settings.update_sim_variables(sim_vars)
 
         if system_choice == "Linearized Simulation":
             if self.sim_proc and self.sim_proc.is_alive():
@@ -514,8 +520,8 @@ class MainWindow(QMainWindow):
         else:
             print("No simulation running to stop.")
 
-    def changeEvent(self, event):
-        if event.type() == QEvent.WindowStateChange:
+    def changeEvent(self, event: QEvent):  # type: ignore[override]
+        if event.type() == QEvent.WindowStateChange:  # type: ignore[attr-defined]
             if not self.isMaximized():
                 self.resize(1200, 700)
         super().changeEvent(event)

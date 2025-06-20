@@ -76,7 +76,7 @@ def hardwareUpdateLoop(position, angle, control_signal):
     try:
         while True:
             data = ser.read_all()
-            if len(data) >= 5:
+            if data is not None and len(data) >= 5:
                 result = find_last_valid_packet(data)
                 if result:
                     x, raw_angle = result

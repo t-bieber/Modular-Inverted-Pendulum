@@ -9,11 +9,11 @@ It runs in its own process and updates the shared control signal variable.
 Hint: The simulation model can be stabilized sufficiently using
       Kp = 20.0, Ki = 0.0, Kd = 1.0.
 """
-# /VARS
+# /VARS     
 # /Kp: float
 # /Ki: float
 # /Kd: float
-# /ENDVARS
+# /ENDVARS  
 
 import math
 import multiprocessing
