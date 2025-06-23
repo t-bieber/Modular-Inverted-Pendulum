@@ -41,12 +41,14 @@ from PyQt5.QtWidgets import (
 )
 from utils.controller_loader import get_available_controllers
 from utils.settings_manager import SettingsManager
+from utils.shared_vars import create_shared_vars
 
 from .collapsible_groupbox import CollapsibleGroupBox
 from .gui_helpers import create_spinbox
 from .plot_widgets import DropPlotArea, PlotList
 from .settings_window import SettingsWindow
 from .visualizer import PendulumVisualizer
+import backend_manager
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +87,27 @@ class MainWindow(QMainWindow):
         menubar: QMenuBar = self.menuBar()
         if menubar is None:
             raise RuntimeError("Menu bar not initialized correctly")
+
+        run_menu: QMenu = menubar.addMenu("&Run")
+        if run_menu is None:
+            raise RuntimeError("Failed to create Run menu")
+        hardware_menu: QMenu = run_menu.addMenu("&Hardware")
+        if hardware_menu is None:
+            raise RuntimeError("Failed to create Hardware menu")
+        hardware_menu.addAction("Connect", self.connect_hardware)
+        hardware_menu.addAction("Disconnect", self.disconnect_hardware)
+
+        if hardware_menu is None:
+            raise RuntimeError("Failed to create Hardware menu")
+        sim_menu: QMenu = run_menu.addMenu("&Simulations")
+        if sim_menu is None:
+            raise RuntimeError("Failed to create Simulations menu")
+        sim_menu.addAction("Start Linear Sim", self.start_linear_sim)
+        sim_menu.addAction("Stop Linear Sim", self.stop_linear_sim)
+        sim_menu.addAction("Start Nonlinear Sim", self.start_nonlinear_sim)
+        sim_menu.addAction("Stop Nonlinear Sim", self.stop_nonlinear_sim)
+
+        
         settings_menu: QMenu = menubar.addMenu("&Settings")
         if settings_menu is None:
             raise RuntimeError("Failed to create Settings menu")
@@ -278,6 +301,24 @@ class MainWindow(QMainWindow):
             self.plot_area.update_all()
         self.visualizer.update()
 
+    def connect_hardware(self):
+        self.backend_manager.start_hardware(self.selected_com_port)
+
+    def disconnect_hardware(self):
+        self.backend_manager.stop_hardware()
+
+    def start_linear_sim(self):
+        self.backend_manager.start_linear_sim()
+
+    def stop_linear_sim(self):
+        self.backend_manager.stop_linear_sim()
+
+    def start_nonlinear_sim(self):
+        self.backend_manager.start_nonlinear_sim()
+
+    def stop_nonlinear_sim(self):
+        self.backend_manager.stop_nonlinear_sim()
+
 
     def display_param_fields(self, controller_name):
         # Clear previous inputs
@@ -351,13 +392,14 @@ class MainWindow(QMainWindow):
                 return
 
             logger.info("Starting simulation...")
-            self.shared_vars = {
-                "position": multiprocessing.Value("d", 0.0),
-                "angle": multiprocessing.Value("d", 0.0),
-                "control_signal": multiprocessing.Value("d", 0.0),
-                "loop_time": multiprocessing.Value("d", 0.0),
-                "desired_angle": multiprocessing.Value("d", math.pi),
-            }
+            # self.shared_vars = {
+            #     "position": multiprocessing.Value("d", 0.0),
+            #     "angle": multiprocessing.Value("d", 0.0),
+            #     "control_signal": multiprocessing.Value("d", 0.0),
+            #     "loop_time": multiprocessing.Value("d", 0.0),
+            #     "desired_angle": multiprocessing.Value("d", math.pi),
+            # }
+            self.shared_vars = create_shared_vars()
 
             self.sim_proc = start_linear_simulation_backend(self.shared_vars, sim_vars)
             self.connect_to_shared_vars(self.shared_vars)
@@ -368,13 +410,14 @@ class MainWindow(QMainWindow):
                 return
 
             logger.info("Starting nonlinear simulation...")
-            self.shared_vars = {
-                "position": multiprocessing.Value("d", 0.0),
-                "angle": multiprocessing.Value("d", 0.0),
-                "control_signal": multiprocessing.Value("d", 0.0),
-                "loop_time": multiprocessing.Value("d", 0.0),
-                "desired_angle": multiprocessing.Value("d", math.pi),
-            }
+            # self.shared_vars = {
+            #     "position": multiprocessing.Value("d", 0.0),
+            #     "angle": multiprocessing.Value("d", 0.0),
+            #     "control_signal": multiprocessing.Value("d", 0.0),
+            #     "loop_time": multiprocessing.Value("d", 0.0),
+            #     "desired_angle": multiprocessing.Value("d", math.pi),
+            # }
+            self.shared_vars = create_shared_vars()
 
             self.sim_proc = start_nonlinear_simulation_backend(
                 self.shared_vars, sim_vars
@@ -383,13 +426,14 @@ class MainWindow(QMainWindow):
 
         elif system_choice == "COM5":
             logger.info("Connecting...")
-            self.shared_vars = {
-                "position": multiprocessing.Value("d", 0.0),
-                "angle": multiprocessing.Value("d", 0.0),
-                "control_signal": multiprocessing.Value("d", 0.0),
-                "loop_time": multiprocessing.Value("d", 0.0),
-                "desired_angle": multiprocessing.Value("d", math.pi),
-            }
+            # self.shared_vars = {
+            #     "position": multiprocessing.Value("d", 0.0),
+            #     "angle": multiprocessing.Value("d", 0.0),
+            #     "control_signal": multiprocessing.Value("d", 0.0),
+            #     "loop_time": multiprocessing.Value("d", 0.0),
+            #     "desired_angle": multiprocessing.Value("d", math.pi),
+            # }
+            self.shared_vars = create_shared_vars()
 
             logger.info("Real hardware mode selected: %s", system_choice)
             self.sim_proc = start_serial_backend(self.shared_vars)
@@ -431,7 +475,7 @@ class MainWindow(QMainWindow):
                 self.swingup_led.setStyleSheet(self.led_style(False))
 
         except Exception as e:
-            logger.error("Failed to start controller '%s': %s", controller_name, e)
+            logger.error("Failed to start controller '%s': %s", controller_name, e, exc_info=True)
 
     def stop_system(self):
         """Terminate any running simulation and controllers."""
