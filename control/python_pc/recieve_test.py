@@ -1,9 +1,11 @@
+import logging
 import struct
 
 import serial
 
-PORT = "COM5"  # Teensy USB port
-BAUDRATE = 115200
+from .config import SERIAL_BAUDRATE, SERIAL_PORT
+
+logger = logging.getLogger(__name__)
 
 
 def find_last_valid_packet(buffer):
@@ -22,10 +24,10 @@ def raw_angle_to_degrees(raw):
 
 def main():
     try:
-        ser = serial.Serial(PORT, BAUDRATE, timeout=0)
-        print(f"Connected to {PORT} at {BAUDRATE} baud.")
+        ser = serial.Serial(SERIAL_PORT, SERIAL_BAUDRATE, timeout=0)
+        logger.info("Connected to %s at %d baud.", SERIAL_PORT, SERIAL_BAUDRATE)
     except serial.SerialException as e:
-        print(f"Failed to open serial port: {e}")
+        logger.error("Failed to open serial port: %s", e)
         return
 
     # Press any key to continue
@@ -39,9 +41,9 @@ def main():
                 if result:
                     x, raw_angle = result
                     angle_deg = raw_angle_to_degrees(raw_angle)
-                    print(f"X = {x:4d}  |  Angle = {angle_deg:7.2f}°")
+                    logger.info("X = %4d  |  Angle = %7.2f°", x, angle_deg)
     except KeyboardInterrupt:
-        print("\nStopped.")
+        logger.info("Stopped.")
     finally:
         ser.close()
 

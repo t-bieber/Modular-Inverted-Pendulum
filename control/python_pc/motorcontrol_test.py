@@ -1,9 +1,11 @@
+import logging
 import struct
 
 import serial
 
-PORT = "COM5"  # Teensy USB port
-BAUDRATE = 115200
+from .config import SERIAL_BAUDRATE, SERIAL_PORT
+
+logger = logging.getLogger(__name__)
 
 
 def send_control_signal(ser, control_value):
@@ -18,10 +20,10 @@ def send_control_signal(ser, control_value):
 
 def main():
     try:
-        ser = serial.Serial(PORT, BAUDRATE, timeout=0)
-        print(f"Connected to {PORT} at {BAUDRATE} baud.")
+        ser = serial.Serial(SERIAL_PORT, SERIAL_BAUDRATE, timeout=0)
+        logger.info("Connected to %s at %d baud.", SERIAL_PORT, SERIAL_BAUDRATE)
     except serial.SerialException as e:
-        print(f"Failed to open serial port: {e}")
+        logger.error("Failed to open serial port: %s", e)
         return
 
     last_sent_control = None
@@ -31,7 +33,7 @@ def main():
             try:
                 current_control = int(input("Enter control signal (-127 to 128): "))
                 if current_control != last_sent_control:
-                    print(f"Sending control signal: {current_control}")
+                    logger.info("Sending control signal: %d", current_control)
                     send_control_signal(
                         ser, current_control
                     )  # send control signal to teensy
@@ -42,7 +44,7 @@ def main():
 
     except KeyboardInterrupt:
         send_control_signal(ser, 0)
-        print("\nStopped.")
+        logger.info("Stopped.")
     finally:
         ser.close()
 

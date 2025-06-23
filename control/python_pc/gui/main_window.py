@@ -12,9 +12,9 @@ and multiprocessing.
 
 ### === external imports ===
 import importlib
+import logging
 import math
 import multiprocessing
-import os
 import sys
 
 from backends.linear_sim_backend import start_linear_simulation_backend
@@ -39,13 +39,16 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from utils.controller_loader import get_available_controllers
 from utils.settings_manager import SettingsManager
 
-### === internal imports ===
 from .collapsible_groupbox import CollapsibleGroupBox
+from .gui_helpers import create_spinbox
 from .plot_widgets import DropPlotArea, PlotList
 from .settings_window import SettingsWindow
 from .visualizer import PendulumVisualizer
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
@@ -113,7 +116,7 @@ class MainWindow(QMainWindow):
 
         # CONTROLLER SELECTION
         controls_layout.addWidget(QLabel("Controller:"))
-        self.controller_param_fields = {}
+        self.controller_param_fields: dict[str, QWidget] = {}
         self.controller_dropdown = QComboBox()
         self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
         controls_layout.addWidget(self.controller_dropdown)
@@ -123,7 +126,7 @@ class MainWindow(QMainWindow):
         self.controller_group.setContentLayout(self.controller_form_layout)
         controls_layout.addWidget(self.controller_group)
 
-        self.controllers, self.controller_params = self.get_available_controllers()
+        self.controllers, self.controller_params = get_available_controllers()
         self.controller_dropdown.addItems(self.controllers)
         self.display_param_fields(self.controller_dropdown.currentText())
 
@@ -131,46 +134,26 @@ class MainWindow(QMainWindow):
         self.sim_settings_group = CollapsibleGroupBox("Simulation Settings")
         sim_layout = QFormLayout()
 
-        self.sim_cmass_field = QDoubleSpinBox()
-        self.sim_cmass_field.setRange(0.01, 10.0)
-        self.sim_cmass_field.setDecimals(2)
-        self.sim_cmass_field.setValue(0.5)
+        self.sim_cmass_field = create_spinbox(0.01, 10.0, 0.01, 0.5)
         sim_layout.addRow("Cart mass (kg):", self.sim_cmass_field)
 
-        self.sim_pmass_field = QDoubleSpinBox()
-        self.sim_pmass_field.setRange(0.01, 10.0)
-        self.sim_pmass_field.setDecimals(2)
-        self.sim_pmass_field.setValue(0.2)
+        self.sim_pmass_field = create_spinbox(0.01, 10.0, 0.01, 0.2)
         sim_layout.addRow("Pendulum mass (kg):", self.sim_pmass_field)
 
-        self.sim_length_field = QDoubleSpinBox()
-        self.sim_length_field.setRange(0.01, 2.0)
-        self.sim_length_field.setDecimals(2)
-        self.sim_length_field.setValue(0.5)
+        self.sim_length_field = create_spinbox(0.01, 2.0, 0.01, 0.5)
         sim_layout.addRow("Length (m):", self.sim_length_field)
 
-        self.sim_friction_field = QDoubleSpinBox()
-        self.sim_friction_field.setRange(0.0, 1.0)
-        self.sim_friction_field.setDecimals(2)
-        self.sim_friction_field.setValue(0.01)
+        self.sim_friction_field = create_spinbox(0.0, 1.0, 0.01, 0.01)
         sim_layout.addRow("Cart Friction:", self.sim_friction_field)
 
-        self.sim_damping_field = QDoubleSpinBox()
-        self.sim_damping_field.setRange(0.0, 1.0)
-        self.sim_damping_field.setDecimals(2)
-        self.sim_damping_field.setValue(0.01)
+        self.sim_damping_field = create_spinbox(0.0, 1.0, 0.01, 0.01)
         sim_layout.addRow("Pendulum Friction:", self.sim_damping_field)
 
-        self.sim_initial_angle_field = QDoubleSpinBox()
-        self.sim_initial_angle_field.setRange(0.0, 359.99)
-        self.sim_initial_angle_field.setDecimals(2)
-        self.sim_initial_angle_field.setValue(180.00)
+        self.sim_initial_angle_field = create_spinbox(0.0, 359.99, 0.1, 180.00)
         sim_layout.addRow("Initial angle (deg):", self.sim_initial_angle_field)
 
-        self.sim_initial_speed_field = QDoubleSpinBox()
-        self.sim_initial_speed_field.setRange(0.0, 1.0)
+        self.sim_initial_speed_field = create_spinbox(0.0, 1.0, 0.001, 0.01)
         self.sim_initial_speed_field.setDecimals(4)
-        self.sim_initial_speed_field.setValue(0.01)
         sim_layout.addRow("Initial speed (deg7s):", self.sim_initial_speed_field)
 
         self.sim_randomize_checkbox = QCheckBox("Randomize Initial State")
@@ -185,16 +168,12 @@ class MainWindow(QMainWindow):
         self.swingup_checkbox = QCheckBox("Enable Swing-Up")
         swingup_layout.addRow(self.swingup_checkbox)
 
-        self.catch_angle_field = QDoubleSpinBox()
+        self.catch_angle_field = create_spinbox(0.0, float(math.pi), 0.01, 0.2)
         self.catch_angle_field.setDecimals(3)
-        self.catch_angle_field.setRange(0.0, math.pi)
-        self.catch_angle_field.setValue(0.2)
         swingup_layout.addRow("Catch Angle (deg):", self.catch_angle_field)
 
-        self.catch_momentum_field = QDoubleSpinBox()
+        self.catch_momentum_field = create_spinbox(0.0, 10.0, 0.01, 0.2)
         self.catch_momentum_field.setDecimals(3)
-        self.catch_momentum_field.setRange(0.0, 10.0)
-        self.catch_momentum_field.setValue(0.2)
         swingup_layout.addRow("Catch Momentum (deg/s):", self.catch_momentum_field)
 
         self.swingup_group.setContentLayout(swingup_layout)
@@ -299,59 +278,6 @@ class MainWindow(QMainWindow):
             self.plot_area.update_all()
         self.visualizer.update()
 
-    def get_available_controllers(self, controller_dir=None):
-        """Scan the controllers directory for available modules."""
-
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-
-        if controller_dir is None:
-            controller_dir = os.path.join(base_dir, "..", "controllers")
-            controller_dir = os.path.abspath(controller_dir)
-
-        controllers = []
-        controller_params = {}
-
-        if not os.path.isdir(controller_dir):
-            print(
-                f"[ERROR] Controller directory not found: {base_dir}, {controller_dir}"
-            )
-            return controllers, controller_params
-
-        for filename in os.listdir(controller_dir):
-            if (not filename.startswith("__")) and (filename.endswith(".py")):
-                if filename.endswith(".py"):
-                    controller_name = filename[:-3]  # Remove .py extension
-                    controllers.append(controller_name)
-
-                    # Extract #/VARS ... #/ENDVARS
-                    with open(os.path.join(controller_dir, filename), "r") as f:
-                        lines = f.readlines()
-                    inside_block = False
-                    params = []
-                    for line in lines:
-                        line = line.strip()
-                        if line == "# /VARS":
-                            inside_block = True
-                        elif line == "# /ENDVARS":
-                            break
-                        elif inside_block and line.startswith("# /"):
-                            try:
-                                var_line = line[3:].strip()  # remove "# /"
-                                if ":" in var_line:
-                                    param_name, var_type = var_line.split(":", 1)
-                                    params.append(
-                                        (param_name.strip(), var_type.strip())
-                                    )
-                                else:
-                                    params.append(
-                                        (var_line.strip(), "float")
-                                    )  # default to float
-                            except ValueError:
-                                print(f"[WARNING] Could not parse line: {line}")
-
-                    controller_params[controller_name] = params
-
-        return controllers, controller_params
 
     def display_param_fields(self, controller_name):
         # Clear previous inputs
@@ -421,10 +347,10 @@ class MainWindow(QMainWindow):
 
         if system_choice == "Linearized Simulation":
             if self.sim_proc and self.sim_proc.is_alive():
-                print("Simulation already running.")
+                logger.info("Simulation already running.")
                 return
 
-            print("Starting simulation...")
+            logger.info("Starting simulation...")
             self.shared_vars = {
                 "position": multiprocessing.Value("d", 0.0),
                 "angle": multiprocessing.Value("d", 0.0),
@@ -438,10 +364,10 @@ class MainWindow(QMainWindow):
 
         elif system_choice == "Nonlinear Simulation":
             if self.sim_proc and self.sim_proc.is_alive():
-                print("Simulation already running.")
+                logger.info("Simulation already running.")
                 return
 
-            print("Starting nonlinear simulation...")
+            logger.info("Starting nonlinear simulation...")
             self.shared_vars = {
                 "position": multiprocessing.Value("d", 0.0),
                 "angle": multiprocessing.Value("d", 0.0),
@@ -456,7 +382,7 @@ class MainWindow(QMainWindow):
             self.connect_to_shared_vars(self.shared_vars)
 
         elif system_choice == "COM5":
-            print("Connecting...")
+            logger.info("Connecting...")
             self.shared_vars = {
                 "position": multiprocessing.Value("d", 0.0),
                 "angle": multiprocessing.Value("d", 0.0),
@@ -465,7 +391,7 @@ class MainWindow(QMainWindow):
                 "desired_angle": multiprocessing.Value("d", math.pi),
             }
 
-            print(f"Real hardware mode selected: {system_choice}")
+            logger.info("Real hardware mode selected: %s", system_choice)
             self.sim_proc = start_serial_backend(self.shared_vars)
             self.connect_to_shared_vars(self.shared_vars)
 
@@ -505,12 +431,12 @@ class MainWindow(QMainWindow):
                 self.swingup_led.setStyleSheet(self.led_style(False))
 
         except Exception as e:
-            print(f"[ERROR] Failed to start controller '{controller_name}': {e}")
+            logger.error("Failed to start controller '%s': %s", controller_name, e)
 
     def stop_system(self):
         """Terminate any running simulation and controllers."""
         if self.sim_proc and self.sim_proc.is_alive():
-            print("Stopping simulation...")
+            logger.info("Stopping simulation...")
             if self.controller_proc and self.controller_proc.is_alive():
                 self.controller_proc.terminate()
                 self.controller_proc.join()
@@ -526,7 +452,7 @@ class MainWindow(QMainWindow):
             self.sim_proc = None
             self.shared_vars = None
         else:
-            print("No simulation running to stop.")
+            logger.info("No simulation running to stop.")
 
     def changeEvent(self, event: QEvent):  # type: ignore[override]
         if event.type() == QEvent.WindowStateChange:  # type: ignore[attr-defined]

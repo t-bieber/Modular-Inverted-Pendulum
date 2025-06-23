@@ -1,5 +1,6 @@
 """Serial communication backend with control signal sending."""
 
+import logging
 import math
 import multiprocessing
 import struct
@@ -7,11 +8,14 @@ from math import degrees
 
 import serial
 
-PORT = "COM5"  # Teensy USB port
-BAUDRATE = 115200
+from .config import (
+    MAX_ANGLE_DEG,
+    MAX_XPOS_MM,
+    SERIAL_BAUDRATE,
+    SERIAL_PORT,
+)
 
-MAX_ANGLE_DEG = 15
-MAX_XPOS_MM = 220
+logger = logging.getLogger(__name__)
 
 
 def find_last_valid_packet(buffer):
@@ -49,7 +53,6 @@ def scale_control_output(
     elif scaled < 0:
         scaled -= threshold
 
-    # print(f"Raw output: {raw_output}, Scaled output: {scaled}")
     return scaled
 
 
@@ -65,10 +68,10 @@ def send_control_signal(ser, control_value):
 
 def hardwareUpdateLoop(position, angle, control_signal):
     try:
-        ser = serial.Serial(PORT, BAUDRATE, timeout=0)
-        print(f"Connected to {PORT} at {BAUDRATE} baud.")
+        ser = serial.Serial(SERIAL_PORT, SERIAL_BAUDRATE, timeout=0)
+        logger.info("Connected to %s at %d baud.", SERIAL_PORT, SERIAL_BAUDRATE)
     except serial.SerialException as e:
-        print(f"Failed to open serial port: {e}")
+        logger.error("Failed to open serial port: %s", e)
         return
 
     last_sent_control = None
@@ -95,16 +98,14 @@ def hardwareUpdateLoop(position, angle, control_signal):
                             send_control_signal(
                                 ser, -current_control
                             )  # negative because of wiring
-                            # print("yeppp")
                         else:
-                            # print("nope")
                             # Out of bounds: stop motor
                             send_control_signal(ser, 0)
                             last_sent_control = 0
                         last_sent_control = current_control
 
     except KeyboardInterrupt:
-        print("\nStopped.")
+        logger.info("Stopped.")
     finally:
         send_control_signal(ser, 0)  # stop motor on exit
         ser.close()

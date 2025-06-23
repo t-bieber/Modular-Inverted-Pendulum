@@ -86,3 +86,6 @@ class SettingsManager:
 
     def get_all_settings(self):
         return self.settings
+
+
+__all__ = ["SettingsManager"]
