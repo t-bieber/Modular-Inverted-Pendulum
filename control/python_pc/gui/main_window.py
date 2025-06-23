@@ -220,9 +220,14 @@ class MainWindow(QMainWindow):
         self.available_plots = {
             "Cart Position": ("position", (-350, 350), lambda v: v["position"].value),
             "Pendulum Angle": ("angle", (0, 2 * math.pi), lambda v: v["angle"].value),
+            "Setpoint Angle": (
+                "desired_angle",
+                (math.radians(185), math.radians(195)),
+                lambda v: v["desired_angle"].value,
+            ),
             "Control Output": (
                 "control",
-                (-10, 10),
+                (-1000, 1000),
                 lambda v: v["control_signal"].value,
             ),
             "Loop Execution Time": ("loop", (0, 0.02), lambda v: v["loop_time"].value),
@@ -367,7 +372,7 @@ class MainWindow(QMainWindow):
             if param_type == "float":
                 field = QDoubleSpinBox()
                 field.setDecimals(4)
-                field.setRange(-1000.0, 1000.0)
+                field.setRange(-9000.0, 9000.0)
                 field.setValue(0.0)
             elif param_type == "int":
                 field = QSpinBox()
@@ -425,6 +430,7 @@ class MainWindow(QMainWindow):
                 "angle": multiprocessing.Value("d", 0.0),
                 "control_signal": multiprocessing.Value("d", 0.0),
                 "loop_time": multiprocessing.Value("d", 0.0),
+                "desired_angle": multiprocessing.Value("d", math.pi),
             }
 
             self.sim_proc = start_linear_simulation_backend(self.shared_vars, sim_vars)
@@ -441,6 +447,7 @@ class MainWindow(QMainWindow):
                 "angle": multiprocessing.Value("d", 0.0),
                 "control_signal": multiprocessing.Value("d", 0.0),
                 "loop_time": multiprocessing.Value("d", 0.0),
+                "desired_angle": multiprocessing.Value("d", math.pi),
             }
 
             self.sim_proc = start_nonlinear_simulation_backend(
@@ -455,6 +462,7 @@ class MainWindow(QMainWindow):
                 "angle": multiprocessing.Value("d", 0.0),
                 "control_signal": multiprocessing.Value("d", 0.0),
                 "loop_time": multiprocessing.Value("d", 0.0),
+                "desired_angle": multiprocessing.Value("d", math.pi),
             }
 
             print(f"Real hardware mode selected: {system_choice}")

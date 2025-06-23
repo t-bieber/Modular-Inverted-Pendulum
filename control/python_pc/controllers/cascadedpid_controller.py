@@ -30,6 +30,7 @@ def cascadedpid_controller(
     angle,
     control_signal,
     loop_time,
+    desired_angle,
     outer_Kp=1.0,
     outer_Ki=0.0,
     outer_Kd=0.0,
@@ -55,23 +56,42 @@ def cascadedpid_controller(
         # current cart position and pendulum angle.
         loop_start = time.perf_counter()
 
-        # Outer PID: cart position -> desired pendulum angle
+        # Outer PID: cart position -> desired pendulum offset angle
         pos_error = pos_setpoint - position.value
-        pos_integral += pos_error * dt
-        pos_derivative = (pos_error - pos_prev_error) / dt
-        desired_angle = (
-            outer_Kp * pos_error + outer_Ki * pos_integral + outer_Kd * pos_derivative
-        )
+
+        # Deadband: do nothing if we're close to center
+        deadband_threshold = 300  # mm (adjust to your liking)
+        if abs(pos_error) < deadband_threshold:
+            desired_angle_offset = 0.0
+            pos_integral = 0.0  # Anti-windup: avoid accumulating error in dead zone
+            pos_derivative = 0.0
+        else:
+            pos_integral += pos_error * dt
+            pos_derivative = (pos_error - pos_prev_error) / dt
+            desired_angle_offset = (
+                outer_Kp * pos_error + outer_Ki * pos_integral + outer_Kd * pos_derivative
+            )
+
         pos_prev_error = pos_error
 
-        # Clamp desired angle to a realistic range
-        # print(f"Desired angle: {desired_angle:.4f} radians")
-        max_angle = math.radians(10)
-        desired_angle = math.pi - max(min(desired_angle, max_angle), -max_angle)
-        # print(f"Clamped desired angle: {desired_angle:.4f} radians")
+        scaled_desired_angle = math.pi - desired_angle_offset * math.radians(5.0) / 8000.0
+        
+        # clamp desired angle to [-5 degrees, 5 degrees] from pi
+        clamped_desired_angle = max(
+            min(scaled_desired_angle, math.pi + math.radians(5)), math.pi - math.radians(5)
+        )
+
+        # # Clamp desired angle to a realistic range
+        # print(f"Desired angle: {raw_desired_angle:.4f} radians")
+        # max_angle = math.radians(5)
+        # clamped_desired_angle = math.pi - max(min(raw_desired_angle, max_angle), -max_angle)
+        # clamped_desired_angle *= math.radians(5.0) / 250.0
+        
+        # print(f"Clamped desired angle: {clamped_desired_angle:.4f} radians")
+        desired_angle.value = clamped_desired_angle
 
         # Inner PID: pendulum angle -> motor command
-        angle_error = desired_angle - angle.value
+        angle_error = clamped_desired_angle - angle.value
         angle_integral += angle_error * dt
         angle_derivative = (angle_error - angle_prev_error) / dt
         output = (
@@ -99,6 +119,7 @@ def start_cascadedpid_controller(
             shared_vars["angle"],
             shared_vars["control_signal"],
             shared_vars["loop_time"],
+            shared_vars["desired_angle"],
             outer_Kp,
             outer_Ki,
             outer_Kd,
