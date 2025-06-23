@@ -6,6 +6,7 @@ controllers. The controller increases the pendulum's energy while
 keeping the cart within ±1m of the centre.  Once the pendulum is within
 the user defined ``catch_angle`` and ``catch_momentum`` thresholds the
 process terminates so that a stabilizing controller can take over.
+broken right now.
 """
 # /VARS
 # /Catch angle: float

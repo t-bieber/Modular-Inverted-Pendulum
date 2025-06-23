@@ -8,7 +8,7 @@ from math import degrees
 
 import serial
 
-from .config import (
+from config import (
     MAX_ANGLE_DEG,
     MAX_XPOS_MM,
     SERIAL_BAUDRATE,

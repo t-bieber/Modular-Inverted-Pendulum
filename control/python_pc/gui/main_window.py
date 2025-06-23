@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
 
         self.sim_initial_speed_field = create_spinbox(0.0, 1.0, 0.001, 0.01)
         self.sim_initial_speed_field.setDecimals(4)
-        sim_layout.addRow("Initial speed (deg7s):", self.sim_initial_speed_field)
+        sim_layout.addRow("Initial speed (deg/s):", self.sim_initial_speed_field)
 
         self.sim_randomize_checkbox = QCheckBox("Randomize Initial State")
         sim_layout.addRow(self.sim_randomize_checkbox)
@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
             if item is not None:
                 widget: QWidget = item.widget()
                 if widget:
-                    widget.setParent(None)
+                    widget.deleteLater()
         self.controller_param_fields.clear()
 
         # Load parameter list: [("Kp", "float"), ("Enabled", "bool"), ...]

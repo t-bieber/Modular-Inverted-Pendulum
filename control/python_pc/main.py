@@ -1,5 +1,5 @@
 """
-main^^^^^^^^^^^^^^py
+main.py
 
 Entry point for the desktop application. This simply delegates to the GUI
 launcher defined in ``gui.gui``. The extra ``multiprocessing`` start method
