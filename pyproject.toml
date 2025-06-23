@@ -1,2 +1,7 @@
 [tool.ruff]
 lint.select = ["F", "E", "I", "B"]  # F: Pyflakes, E: pycodestyle, I: isort, B: Bugbear
+line-length = 88
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true

@@ -10,6 +10,7 @@ This project is maintained on GitHub: https://github.com/t-bieber/Modular-Invert
 Author: Tom Bieber
 """
 
+import logging
 import multiprocessing
 
 # ``run_gui`` lives in the ``gui`` module within the ``gui`` package. Importing
@@ -19,6 +20,7 @@ from gui.gui import run_gui
 
 def main() -> None:
     """Start the Qt based control GUI."""
+    logging.basicConfig(level=logging.INFO)
     # ``spawn`` ensures compatibility on Windows/macOS where ``fork`` is not
     # the default start method. The GUI itself will run in the main process.
     multiprocessing.set_start_method("spawn")

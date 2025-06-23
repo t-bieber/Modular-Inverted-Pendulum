@@ -34,3 +34,18 @@ Want to use a PID controller? There's already one available. Prefer something fa
 ### Control everything from a GUI
 - Live plots of angle, position, and control effort
 - Switch controllers or tune parameters without recompiling and uploading
+
+## Developer Notes
+
+The `control/python_pc` folder contains the desktop control application. Key submodules:
+
+- `gui/` – Qt based user interface
+- `backends/` – simulation and hardware interfaces
+- `controllers/` – pluggable control algorithms
+- `utils/` – helpers and settings handling
+
+Run `python -m control.python_pc.main` to start the GUI.
+
+### Contributing
+
+Please run `ruff` and `mypy` before submitting patches and follow PEP8 naming conventions.
