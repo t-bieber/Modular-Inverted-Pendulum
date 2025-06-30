@@ -7,13 +7,14 @@ import struct
 from math import degrees
 
 import serial
+from utils.settings_manager import SettingsManager #-> get this passed from main?
 
-from config import (
-    MAX_ANGLE_DEG,
-    MAX_XPOS_MM,
-    SERIAL_BAUDRATE,
-    SERIAL_PORT,
-)
+settings = SettingsManager()
+
+MAX_ANGLE_DEG = settings.get_max_angle_deg()
+MAX_XPOS_MM = settings.get_max_xpos_mm()
+SERIAL_BAUDRATE = settings.get_serial_baudrate()
+SERIAL_PORT = settings.get_serial_port()
 
 logger = logging.getLogger(__name__)
 

@@ -11,6 +11,7 @@ Structure:
 
 The inner loop runs every 10 ms by default.
 """
+# Tuning variables exposed to user interface:
 # /VARS
 # /Outer Kp: float
 # /Outer Ki: float
@@ -24,12 +25,19 @@ import math
 import multiprocessing
 import time
 
+from utils.settings_manager import SettingsManager
+
+settings = SettingsManager()
+
+MAX_ANGLE_DEG = settings.get_max_angle_deg()
+MAX_XPOS_MM = settings.get_max_xpos_mm()
+
 
 def cascadedpid_controller(
     position,
     angle,
     control_signal,
-    loop_time,
+    execution_time,
     desired_angle,
     outer_Kp=1.0,
     outer_Ki=0.0,
@@ -60,18 +68,18 @@ def cascadedpid_controller(
         pos_error = pos_setpoint - position.value
 
         # Deadband: do nothing if we're close to center
-        deadband_threshold = 300  # mm (adjust to your liking)
-        if abs(pos_error) < deadband_threshold:
-            desired_angle_offset = 0.0
-            pos_integral = 0.0  # Anti-windup: avoid accumulating error in dead zone
-            pos_derivative = 0.0
-        else:
-            pos_integral += pos_error * dt
-            pos_derivative = (pos_error - pos_prev_error) / dt
-            desired_angle_offset = (
-                outer_Kp * pos_error
-                + outer_Ki * pos_integral
-                + outer_Kd * pos_derivative
+        # deadband_threshold = 0  # mm
+        # if abs(pos_error) < deadband_threshold:
+        #     desired_angle_offset = 0.0
+        #     pos_integral = 0.0  # Anti-windup: avoid accumulating error in dead zone
+        #     pos_derivative = 0.0
+        #else:
+        pos_integral += pos_error * dt
+        pos_derivative = (pos_error - pos_prev_error) / dt
+        desired_angle_offset = (
+            outer_Kp * pos_error
+            + outer_Ki * pos_integral
+            + outer_Kd * pos_derivative
             )
 
         pos_prev_error = pos_error
@@ -89,9 +97,15 @@ def cascadedpid_controller(
         desired_angle.value = clamped_desired_angle
 
         # Inner PID: pendulum angle -> motor command
-        angle_error = clamped_desired_angle - angle.value
-        angle_integral += angle_error * dt
-        angle_derivative = (angle_error - angle_prev_error) / dt
+        angle_error = clamped_desired_angle - angle.value  # P
+
+        # if out of controllable angle range, don't accumulate error
+        if(abs(angle_error) > math.radians(MAX_ANGLE_DEG)):     # I
+            angle_integral = 0
+        else:
+            angle_integral += angle_error * dt
+        
+        angle_derivative = (angle_error - angle_prev_error) / dt    # D
         output = (
             inner_Kp * angle_error
             + inner_Ki * angle_integral
@@ -102,7 +116,7 @@ def cascadedpid_controller(
 
         # Loop timing
         elapsed = time.perf_counter() - loop_start
-        loop_time.value = elapsed  # expose loop duration to the GUI
+        execution_time.value = elapsed  # expose loop duration to the GUI
         time.sleep(max(0, dt - elapsed))
 
 
@@ -116,7 +130,7 @@ def start_cascadedpid_controller(
             shared_vars["position"],
             shared_vars["angle"],
             shared_vars["control_signal"],
-            shared_vars["loop_time"],
+            shared_vars["execution_time"],
             shared_vars["desired_angle"],
             outer_Kp,
             outer_Ki,

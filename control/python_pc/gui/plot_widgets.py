@@ -2,6 +2,7 @@
 plot_widgets.py
 
 Utility widgets for plotting simulation data within the GUI.
+Status: Working
 """
 
 from PyQt5.QtWidgets import (
@@ -54,7 +55,7 @@ class PlotList(QListWidget):
         self.button_layout = QVBoxLayout()
 
         self.add_button = QPushButton("Add")
-        self.add_button.clicked.connect(self.add_selected_plot)
+        self.add_button.clicked.connect(self.add_plot)
         self.button_layout.addWidget(self.add_button)
 
         self.remove_button = QPushButton("Remove")
@@ -76,6 +77,11 @@ class PlotList(QListWidget):
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setDragDropMode(QAbstractItemView.NoDragDrop)
 
+        self.add_plot("Pendulum Angle")
+        self.add_plot("Setpoint Angle")
+        self.add_plot("Control Output")
+
+
     def populate(self, plot_names):
         self.clear()
         for name in plot_names:
@@ -85,8 +91,9 @@ class PlotList(QListWidget):
         item = self.currentItem()
         return item.text() if item else None
 
-    def add_selected_plot(self):
-        plot_name = self.get_selected_plot_name()
+    def add_plot(self, plot_name = None):
+        if plot_name is False:
+            plot_name = self.get_selected_plot_name()
         if plot_name and plot_name not in self.drop_area.active_plot_widgets:
             key, y_range, getter = self.drop_area.available_plots[plot_name]
             plot_widget = PlotContainer(plot_name, y_range, getter)
@@ -142,8 +149,9 @@ class DropPlotArea(QWidget):
 
     def __init__(self, available_plots, shared_vars):
         super().__init__()
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        self.layout = QVBoxLayout()     # type: ignore
+        if self.layout is not None:
+            self.setLayout(self.layout) # type: ignore
         self.available_plots = available_plots  # name -> (key, range, getter)
         self.shared_vars = shared_vars
         self.active_plot_widgets = {}
@@ -151,7 +159,7 @@ class DropPlotArea(QWidget):
     def remove_plot(self, plot_name):
         if plot_name in self.active_plot_widgets:
             widget = self.active_plot_widgets.pop(plot_name)
-            self.layout.removeWidget(widget)
+            self.layout.removeWidget(widget)    # type: ignore
             widget.setParent(None)
 
     def update_all(self):

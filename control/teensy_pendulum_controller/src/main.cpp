@@ -18,9 +18,8 @@ CytronMD motor(PWM_DIR, MOTOR_PWM, MOTOR_DIR);
 // === Encoder helpers ===
 uint16_t encoderReadAngle() {
   int angle_raw = angle_encoder->getPosition();
-  if (angle_raw < 0) angle_raw += 1200;
-  else if (angle_raw >= 1200) angle_raw -= 1200;
-  return angle_raw;
+  int wrapped = ((angle_raw % 1200) + 1200) % 1200;
+  return wrapped;
 }
 
 uint16_t encoderReadX() {
