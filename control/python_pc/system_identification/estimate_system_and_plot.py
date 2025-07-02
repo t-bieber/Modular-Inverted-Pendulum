@@ -51,6 +51,7 @@ def estimate_system_and_plot(csv_path: str, dt: float):
         axs[i].plot(time, X_k_pred[i], label="Predicted", linestyle="--")
         axs[i].set_ylabel(labels[i])
         axs[i].legend()
+        axs[i].grid()
     axs[-1].set_xlabel("Time (s)")
     fig.suptitle("Model Prediction vs Actual State")
     plt.tight_layout()

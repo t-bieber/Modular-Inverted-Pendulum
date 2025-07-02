@@ -5,8 +5,8 @@
 // === Pin definitions ===
 #define ANGLE_ENCODER_HIGH 2
 #define ANGLE_ENCODER_LOW 3
-#define X_ENCODER_HIGH 4
-#define X_ENCODER_LOW 5
+#define X_ENCODER_HIGH 5
+#define X_ENCODER_LOW 6
 #define MOTOR_PWM 14
 #define MOTOR_DIR 15
 

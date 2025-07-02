@@ -137,13 +137,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.start_button)
         layout.addWidget(self.stop_button)
 
-        self.system_selector = QComboBox()
-        self.system_selector.addItems([
-            "Linearized Simulation", "Nonlinear Simulation", "COM5"
-        ])
-        self.system_selector.setToolTip("Select the system to control (simulation or hardware).")
-        layout.addWidget(QLabel("System:"))
-        layout.addWidget(self.system_selector)
+        # self.system_selector = QComboBox()
+        # self.system_selector.addItems([
+        #     "Linearized Simulation", "Nonlinear Simulation", "COM5"
+        # ])
+        # self.system_selector.setToolTip("Select the system to control (simulation or hardware).")
+        # layout.addWidget(QLabel("System:"))
+        # layout.addWidget(self.system_selector)
 
         layout.addWidget(QLabel("Controller:"))
         self.controller_dropdown = QComboBox()
@@ -400,24 +400,16 @@ class MainWindow(QMainWindow):
             logger.error("Failed to start controller '%s': %s", controller_name, e, exc_info=True)
 
     def stop_system(self):
-        if self.sim_proc and self.sim_proc.is_alive():
-            logger.info("Stopping controller...")
-            if self.controller_proc and self.controller_proc.is_alive():
-                self.controller_proc.terminate()
-                self.controller_proc.join()
-            if self.swingup_proc and self.swingup_proc.is_alive():
-                self.swingup_proc.terminate()
-                self.swingup_proc.join()
-            if self.swingup_timer:
-                self.swingup_timer.stop()
-            self.controller_led.setStyleSheet(self.led_style(False))
-            self.swingup_led.setStyleSheet(self.led_style(False))
-            self.sim_proc.terminate()   # don't do that here anymore
-            self.sim_proc.join()
-            self.sim_proc = None 
-            self.shared_vars = None
-        else:
-            logger.info("No simulation running to stop.")
+        logger.info("Stopping controller...")
+        if self.shared_vars is not None:
+            self.shared_vars["controller_active"] = False
+            logger.info("controller_active = false")
+        if self.controller_proc and self.controller_proc.is_alive():
+            self.controller_proc.terminate()
+            self.controller_proc.join()
+        self.controller_led.setStyleSheet(self.led_style(False))
+        self.sim_proc = None 
+        # self.shared_vars = None # TODO maybe don't do that?
 
     def connect_hardware(self):
         sv = self.backend_manager.start_hardware()

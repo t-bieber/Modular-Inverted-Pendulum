@@ -36,7 +36,7 @@ def raw_angle_to_rad(raw_angle):
 def scale_control_output(
     raw_output: float,
     max_input: float = 100.0,
-    threshold: int = 10,
+    threshold: int = 20,
     max_output: int = 255,
 ) -> int:
     """

@@ -65,8 +65,8 @@ def main():
                     x, raw_angle = result
                     angle_rad = raw_angle_to_rad(raw_angle)
                     position_mm = ((x - 16220 / 2) / 27) / 1000 # (centered) encoder counts in m (approx)
-                    log.append((t, position_mm, angle_rad, control))
-                    print(f"{t:.2f}s  x={position_mm:.4f} m  θ={math.degrees(angle_rad):.2f}°  u={control}")
+                    log.append((t, position_mm, angle_rad, control)) # MAYBE write control/255. (normalize)?
+                    print(f"{t:.2f}s  x={position_mm:.4f} mm  θ={math.degrees(angle_rad):.2f}°  u={control}")
 
             time.sleep(0.01)
 
