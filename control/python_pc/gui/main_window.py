@@ -14,6 +14,7 @@ and multiprocessing.
 import importlib
 import logging
 import math
+import time
 import multiprocessing
 import sys
 
@@ -404,6 +405,7 @@ class MainWindow(QMainWindow):
         if self.shared_vars is not None:
             self.shared_vars["controller_active"] = False
             logger.info("controller_active = false")
+            time.sleep(20/1000) # sleep 20 ms to make sure controller output is set to 0 before terminating
         if self.controller_proc and self.controller_proc.is_alive():
             self.controller_proc.terminate()
             self.controller_proc.join()
