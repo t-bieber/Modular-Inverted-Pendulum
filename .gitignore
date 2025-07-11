@@ -3,3 +3,7 @@
 /*/__pycache__/*
 /*/*/__pycache__/*
 __pycache__/
+control/python_pc/system_identification/A_matrix.csv
+control/python_pc/system_identification/B_matrix.csv
+control/python_pc/system_identification/K_matrix.csv
+control/python_pc/system_identification/log_data.csv

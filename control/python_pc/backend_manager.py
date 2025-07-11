@@ -15,15 +15,17 @@ class BackendManager:
         self.hardware_process = None
         self.sim_process = None
 
-    def start_hardware(self, port: str):
+    def start_hardware(self):
         if self.hardware_process is not None and self.hardware_process.is_alive():
             logger.warning("Hardware already running.")
             return
         self.hardware_process = multiprocessing.Process(
-            target=hardwareUpdateLoop, args=(self.shared_vars, port)
+            target=hardwareUpdateLoop, args=(self.shared_vars["position"], self.shared_vars["angle"],
+                                                  self.shared_vars["control_signal"])
         )
         self.hardware_process.start()
         logger.info("Hardware backend started.")
+        return self.shared_vars
 
     def stop_hardware(self):
         if self.hardware_process:

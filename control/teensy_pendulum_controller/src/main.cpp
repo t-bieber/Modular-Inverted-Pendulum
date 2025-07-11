@@ -5,8 +5,8 @@
 // === Pin definitions ===
 #define ANGLE_ENCODER_HIGH 2
 #define ANGLE_ENCODER_LOW 3
-#define X_ENCODER_HIGH 4
-#define X_ENCODER_LOW 5
+#define X_ENCODER_HIGH 5
+#define X_ENCODER_LOW 6
 #define MOTOR_PWM 14
 #define MOTOR_DIR 15
 
@@ -18,9 +18,8 @@ CytronMD motor(PWM_DIR, MOTOR_PWM, MOTOR_DIR);
 // === Encoder helpers ===
 uint16_t encoderReadAngle() {
   int angle_raw = angle_encoder->getPosition();
-  if (angle_raw < 0) angle_raw += 1200;
-  else if (angle_raw >= 1200) angle_raw -= 1200;
-  return angle_raw;
+  int wrapped = ((angle_raw % 1200) + 1200) % 1200;
+  return wrapped;
 }
 
 uint16_t encoderReadX() {

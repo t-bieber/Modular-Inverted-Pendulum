@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-
 class SettingsWindow(QDialog):
     def __init__(self, settings_manager, parent=None):
         super().__init__(parent)
@@ -35,7 +34,7 @@ class SettingsWindow(QDialog):
 
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save_settings)
-        layout.addWidget(self.save_button, alignment=Qt.AlignRight)
+        layout.addWidget(self.save_button, alignment=Qt.AlignRight) # type: ignore
 
     def save_settings(self):
         for key, spin in self.inputs.items():

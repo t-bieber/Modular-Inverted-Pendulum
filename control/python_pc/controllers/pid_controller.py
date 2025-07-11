@@ -48,7 +48,7 @@ def start_pid_controller(shared_vars, Kp, Ki, Kd):
         args=(
             shared_vars["angle"],
             shared_vars["control_signal"],
-            shared_vars["loop_time"],
+            shared_vars["execution_time"],
             Kp,
             Ki,
             Kd,
