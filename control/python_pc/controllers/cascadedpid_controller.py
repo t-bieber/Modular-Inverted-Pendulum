@@ -25,14 +25,14 @@ import math
 import multiprocessing
 import time
 
-#TODO Use settings from main (how?)
+# TODO Use settings from main (how?)
 from utils.settings_manager import SettingsManager
 
 settings = SettingsManager()
 
 MAX_ANGLE_DEG = settings.get_max_angle_deg()
 MAX_XPOS_MM = settings.get_max_xpos_mm()
-#TODO Use settings from main (how?)
+
 
 def cascadedpid_controller(
     position,
@@ -40,7 +40,7 @@ def cascadedpid_controller(
     control_signal,
     execution_time,
     desired_angle,
-    controller_active: bool,
+    controller_active,
     outer_Kp=1.0,
     outer_Ki=0.0,
     outer_Kd=0.0,
@@ -63,7 +63,7 @@ def cascadedpid_controller(
 
     loop_count = 0
 
-    while controller_active:
+    while controller_active.value:
         loop_start = time.perf_counter()
 
         # --- Outer PID every 5 loops ---

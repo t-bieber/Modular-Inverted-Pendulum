@@ -6,17 +6,19 @@ This file implements the backend manager, which starts either the real hardware 
 It runs the backend in its own thread and passes the shared vars to it.
 """
 
-import multiprocessing
 import logging
-from typing import Dict, Any
+import multiprocessing
+from typing import Any, Dict
 
-from utils.settings_manager import SettingsManager
 from backends.serial_backend import hardwareUpdateLoop
-#from backends.linear_sim_backend import simulated_physics_loop
-#from backends.nonlinear_sim_backend import nonlinear_physics_loop
+from utils.settings_manager import SettingsManager
+
+# from backends.linear_sim_backend import simulated_physics_loop
+# from backends.nonlinear_sim_backend import nonlinear_physics_loop
 
 
 logger = logging.getLogger(__name__)
+
 
 class BackendManager:
     def __init__(self, shared_vars: Dict[str, Any], settings_manager: SettingsManager):
@@ -29,7 +31,7 @@ class BackendManager:
         if self.hardware_process is not None and self.hardware_process.is_alive():
             logger.info("Hardware already running.")
             return
-        
+
         settings_dict = self.settings_manager.export_for_backend()
 
         self.hardware_process = multiprocessing.Process(
@@ -50,8 +52,12 @@ class BackendManager:
     #         logger.warning("Simulation already running.")
     #         return
     #     self.sim_process = multiprocessing.Process(
-    #         target=nonlinear_physics_loop, args=(self.shared_vars["position"], self.shared_vars["angle"],
-    #                                               self.shared_vars["control_signal"], sim_vars)
+    #         target=nonlinear_physics_loop, args=  (
+    #                                               self.shared_vars["position"],
+    #                                               self.shared_vars["angle"],
+    #                                               self.shared_vars["control_signal"],
+    #                                               sim_vars
+    #                                               )
     #     )
     #     self.sim_process.start()
     #     logger.info("Linear simulation started.")

@@ -19,9 +19,7 @@ def get_available_controllers(
     controller_params: Dict[str, List[Tuple[str, str]]] = {}
 
     if not os.path.isdir(controller_dir):
-        raise FileNotFoundError(
-            f"Controller directory not found: {controller_dir}"
-        )
+        raise FileNotFoundError(f"Controller directory not found: {controller_dir}")
 
     for filename in os.listdir(controller_dir):
         if not filename.startswith("__") and filename.endswith(".py"):

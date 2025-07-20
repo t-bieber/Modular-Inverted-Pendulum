@@ -6,12 +6,10 @@ Serial communication backend with control signal sending.
 
 import logging
 import math
-import multiprocessing
 import struct
 from math import degrees
 
 import serial
-from utils.settings_manager import SettingsManager #-> get this passed from main?
 
 # MAX_ANGLE_DEG = settings.get_max_angle_deg()
 # MAX_XPOS_MM = settings.get_max_xpos_mm()
@@ -71,10 +69,11 @@ def send_control_signal(ser, control_value) -> None:
     ser.write(packet)
 
 
-def hardwareUpdateLoop(shared_vars, settings) -> None: #TODO: Refactor your hardwareUpdateLoop() so it takes a settings_dict as argument instead of accessing a full SettingsManager inside.
+def hardwareUpdateLoop(shared_vars, settings) -> None:
     try:
         ser = serial.Serial(settings["serial_port"], settings["baudrate"], timeout=0)
-        logger.info("Connected to %s at %d baud.", settings["serial_port"], settings["baudrate"])
+        logger.info("Connected to %s at %d baud.",
+                    settings["serial_port"], settings["baudrate"])
     except serial.SerialException as e:
         logger.error("Failed to open serial port: %s", e)
         return
@@ -91,8 +90,9 @@ def hardwareUpdateLoop(shared_vars, settings) -> None: #TODO: Refactor your hard
                 x_position, raw_angle = result
 
                 # convert values from encoder counts to radians, millimeters
+                # pos. conversion to mm is approximate, TODO: actual math
                 shared_vars["angle"].value = raw_angle_to_rad(raw_angle)
-                shared_vars["position"].value = (x_position - 16220 / 2) / 27  # mm approx TODO actual math?! no way
+                shared_vars["position"].value = (x_position - 16220 / 2) / 27  
 
                 # scale controller output to motor range
                 current_control = scale_control_output(shared_vars["control_signal"])

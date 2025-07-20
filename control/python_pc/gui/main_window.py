@@ -15,14 +15,12 @@ import importlib
 import logging
 import math
 import time
-from typing import Dict, Any
-import multiprocessing
-import sys
+from typing import Any, Dict
 
+from backend_manager import BackendManager
 from PyQt5.QtCore import QEvent, QTimer
 from PyQt5.QtWidgets import (
     QAction,
-    QApplication,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -31,29 +29,29 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
-    QMenu,
-    QMenuBar,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
     QWidget,
 )
+from utils.controller_loader import get_available_controllers
+from utils.settings_manager import SettingsManager
 
 from .collapsible_groupbox import CollapsibleGroupBox
 from .gui_helpers import create_spinbox
 from .plot_widgets import DropPlotArea, PlotList
 from .settings_window import SettingsWindow
 from .visualizer import PendulumVisualizer
-from utils.shared_vars import create_shared_vars
-from utils.controller_loader import get_available_controllers
-from utils.settings_manager import SettingsManager
-from backend_manager import BackendManager
 
 logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings: SettingsManager, backend_manager: BackendManager, shared_vars: Dict[str, Any]):
+    def __init__(
+            self, settings: SettingsManager,
+            backend_manager: BackendManager,
+            shared_vars: Dict[str, Any]
+            ) -> None:
         super().__init__()
         self.settings_manager: SettingsManager = settings
         self.backend_manager: BackendManager = backend_manager
@@ -129,14 +127,6 @@ class MainWindow(QMainWindow):
         self.stop_button = QPushButton("Stop")
         layout.addWidget(self.start_button)
         layout.addWidget(self.stop_button)
-
-        # self.system_selector = QComboBox()
-        # self.system_selector.addItems([
-        #     "Linearized Simulation", "Nonlinear Simulation", "COM5"
-        # ])
-        # self.system_selector.setToolTip("Select the system to control (simulation or hardware).")
-        # layout.addWidget(QLabel("System:"))
-        # layout.addWidget(self.system_selector)
 
         layout.addWidget(QLabel("Controller:"))
         self.controller_dropdown = QComboBox()
@@ -244,7 +234,8 @@ class MainWindow(QMainWindow):
         widget.setFixedWidth(250)
         return widget
 
-    def connect_signals(self): #TODO why is this its own function? should be in some sort of init()?
+    def connect_signals(self) -> None:  #TODO why is this its own function?
+                                        # should be in some sort of init()?
         self.start_button.clicked.connect(self.start_controller)
         self.stop_button.clicked.connect(self.stop_system)
         self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
@@ -319,17 +310,6 @@ class MainWindow(QMainWindow):
                 values[name] = widget.text()
         return values
 
-    # def check_swingup_completion(self):
-    #     if self.swingup_proc and not self.swingup_proc.is_alive():
-    #         if self.swingup_timer is not None:
-    #             self.swingup_timer.stop()
-    #         self.swingup_proc.join()
-    #         self.swingup_proc = None
-    #         if self.controller_start_func and self.controller_param_values is not None:
-    #             self.controller_proc = self.controller_start_func(
-    #                 self.shared_vars, *self.controller_param_values.values()
-    #             )
-
     def start_controller(self) -> None:
 
         controller_name = self.controller_dropdown.currentText()
@@ -350,38 +330,39 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error("Failed to start controller '%s': %s", controller_name, e, exc_info=True)
 
-    def stop_system(self):
+    def stop_system(self) -> None:
         logger.info("Stopping controller...")
         if self.shared_vars is not None:
             self.shared_vars["controller_active"] = False
             logger.info("controller_active = false")
-            time.sleep(20/1000) # sleep 20 ms to make sure controller output is set to 0 before terminating
+            # sleep 20 ms to make sure controller output is set to 0 before terminating
+            time.sleep(20/1000)
         if self.controller_proc and self.controller_proc.is_alive():
             self.controller_proc.terminate()
             self.controller_proc.join()
         self.sim_proc = None 
         # self.shared_vars = None # TODO maybe don't do that?
 
-    def connect_hardware(self):
+    def connect_hardware(self) -> None:
         sv = self.backend_manager.start_hardware()
         self.connect_to_shared_vars(sv)
 
-    def disconnect_hardware(self):
+    def disconnect_hardware(self) -> None:
         self.backend_manager.stop_hardware()
 
-    def start_linear_sim(self):
+    def start_linear_sim(self) -> None:
         self.backend_manager.start_linear_sim()
 
-    def stop_linear_sim(self):
+    def stop_linear_sim(self) -> None:
         self.backend_manager.stop_linear_sim()
 
-    def start_nonlinear_sim(self):
+    def start_nonlinear_sim(self) -> None:
         self.backend_manager.start_nonlinear_sim()
 
-    def stop_nonlinear_sim(self):
+    def stop_nonlinear_sim(self) -> None:
         self.backend_manager.stop_nonlinear_sim()
 
-    def get_sim_vars_from_ui(self):
+    def get_sim_vars_from_ui(self) -> Dict[str, float]:
         return {
             "cart_mass": self.sim_cmass_field.value(),
             "pendulum_mass": self.sim_pmass_field.value(),

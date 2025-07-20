@@ -57,12 +57,7 @@ def lqr_controller(
         theta_error = theta - 3.14159265  # target is upright
 
         # Compute LQR control signal
-        u = -(
-            Kx * x +
-            Kx_dot * x_dot +
-            Ktheta * theta_error +
-            Ktheta_dot * theta_dot
-        )
+        u = -(Kx * x + Kx_dot * x_dot + Ktheta * theta_error + Ktheta_dot * theta_dot)
 
         control_signal.value = u
 

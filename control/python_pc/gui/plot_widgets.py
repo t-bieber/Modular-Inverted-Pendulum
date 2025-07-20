@@ -81,7 +81,6 @@ class PlotList(QListWidget):
         self.add_plot("Setpoint Angle")
         self.add_plot("Control Output")
 
-
     def populate(self, plot_names):
         self.clear()
         for name in plot_names:
@@ -91,7 +90,7 @@ class PlotList(QListWidget):
         item = self.currentItem()
         return item.text() if item else None
 
-    def add_plot(self, plot_name = None):
+    def add_plot(self, plot_name=None):
         if plot_name is False:
             plot_name = self.get_selected_plot_name()
         if plot_name and plot_name not in self.drop_area.active_plot_widgets:
@@ -149,9 +148,9 @@ class DropPlotArea(QWidget):
 
     def __init__(self, available_plots, shared_vars):
         super().__init__()
-        self.layout = QVBoxLayout()     # type: ignore
+        self.layout = QVBoxLayout()  # type: ignore
         if self.layout is not None:
-            self.setLayout(self.layout) # type: ignore
+            self.setLayout(self.layout)  # type: ignore
         self.available_plots = available_plots  # name -> (key, range, getter)
         self.shared_vars = shared_vars
         self.active_plot_widgets = {}
@@ -159,7 +158,7 @@ class DropPlotArea(QWidget):
     def remove_plot(self, plot_name):
         if plot_name in self.active_plot_widgets:
             widget = self.active_plot_widgets.pop(plot_name)
-            self.layout.removeWidget(widget)    # type: ignore
+            self.layout.removeWidget(widget)  # type: ignore
             widget.setParent(None)
 
     def update_all(self):

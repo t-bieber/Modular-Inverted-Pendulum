@@ -2,7 +2,7 @@ import json
 import os
 
 
-class SettingsManager: #TODO: deal with input keys not existing, value validation...
+class SettingsManager:  # TODO: deal with input keys not existing, value validation...
     DEFAULT_SETTINGS = {
         "sim_variables": {
             "mass": 0.2,
@@ -83,12 +83,14 @@ class SettingsManager: #TODO: deal with input keys not existing, value validatio
             return
         expected_type = type(self.DEFAULT_SETTINGS["hardware_constants"][key])
         try:
-            self.settings.setdefault("hardware_constants", {})[key] = expected_type(value)
+            self.settings.setdefault("hardware_constants", {})[key] = expected_type(
+                value
+            )
         except ValueError:
             print(f"[ERROR] Invalid value for {key}: expected {expected_type.__name__}")
 
     # --- Direct accessors for old config.py variables ---
-    
+
     def get_serial_port(self) -> str:
         return self.get_hardware_constant("serial_port")
 

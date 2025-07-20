@@ -11,15 +11,15 @@ Author: Tom Bieber
 import logging
 import multiprocessing
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
 
 import qtstylish
-from PyQt5.QtWidgets import QApplication
-
-from gui.main_window import MainWindow
-from utils.shared_vars import create_shared_vars
-from utils.settings_manager import SettingsManager
 from backend_manager import BackendManager
+from gui.main_window import MainWindow
+from PyQt5.QtWidgets import QApplication
+from utils.settings_manager import SettingsManager
+from utils.shared_vars import create_shared_vars
+
 
 def main() -> None:
     """Start the Qt based control GUI."""
