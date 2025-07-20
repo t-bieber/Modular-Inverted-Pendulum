@@ -1,4 +1,8 @@
-"""Serial communication backend with control signal sending."""
+"""
+serial_backend.py
+
+Serial communication backend with control signal sending.
+"""
 
 import logging
 import math
@@ -9,27 +13,27 @@ from math import degrees
 import serial
 from utils.settings_manager import SettingsManager #-> get this passed from main?
 
-settings = SettingsManager()
-
-MAX_ANGLE_DEG = settings.get_max_angle_deg()
-MAX_XPOS_MM = settings.get_max_xpos_mm()
-SERIAL_BAUDRATE = settings.get_serial_baudrate()
-SERIAL_PORT = settings.get_serial_port()
+# MAX_ANGLE_DEG = settings.get_max_angle_deg()
+# MAX_XPOS_MM = settings.get_max_xpos_mm()
+# SERIAL_BAUDRATE = settings.get_serial_baudrate()
+# SERIAL_PORT = settings.get_serial_port()
 
 logger = logging.getLogger(__name__)
 
 
-def find_last_valid_packet(buffer):
+def find_last_valid_packet(buffer) -> tuple[int, int] | None:
     for i in range(len(buffer) - 5, -1, -1):
         if buffer[i] == 0xAA:
             packet = buffer[i + 1 : i + 5]
             if len(packet) == 4:
+                x_pos: int
+                raw_angle: int
                 x_pos, raw_angle = struct.unpack("<HH", packet)
                 return x_pos, raw_angle
     return None
 
 
-def raw_angle_to_rad(raw_angle):
+def raw_angle_to_rad(raw_angle) -> float:
     return raw_angle * 2 * math.pi / 1200.0
 
 
@@ -57,7 +61,7 @@ def scale_control_output(
     return scaled
 
 
-def send_control_signal(ser, control_value):
+def send_control_signal(ser, control_value) -> None:
     """
     Sends a signed 16-bit control signal to Teensy.
     Format: [0x55][int16 low byte][int16 high byte]
@@ -67,59 +71,43 @@ def send_control_signal(ser, control_value):
     ser.write(packet)
 
 
-def hardwareUpdateLoop(position, angle, control_signal):
+def hardwareUpdateLoop(shared_vars, settings) -> None: #TODO: Refactor your hardwareUpdateLoop() so it takes a settings_dict as argument instead of accessing a full SettingsManager inside.
     try:
-        ser = serial.Serial(SERIAL_PORT, SERIAL_BAUDRATE, timeout=0)
-        logger.info("Connected to %s at %d baud.", SERIAL_PORT, SERIAL_BAUDRATE)
+        ser = serial.Serial(settings["serial_port"], settings["baudrate"], timeout=0)
+        logger.info("Connected to %s at %d baud.", settings["serial_port"], settings["baudrate"])
     except serial.SerialException as e:
         logger.error("Failed to open serial port: %s", e)
         return
 
-    last_sent_control = None
+    last_sent_control = 0
 
-    try:
-        while True:
-            data = ser.read_all()
-            if data is not None and len(data) >= 5:
-                result = find_last_valid_packet(data)
-                if result:
-                    x, raw_angle = result
-                    angle.value = raw_angle_to_rad(raw_angle)
-                    position.value = (x - 16220 / 2) / 27  # mm approx
+    while True:
+        data = ser.read_all()
+        if data is not None and len(data) >= 5:
+            result: tuple[int, int] | None = find_last_valid_packet(data)
+            if result:
+                x_position: int # ENCODER COUNT VALUE
+                raw_angle: int  # ENCODER COUNT VALUE
+                x_position, raw_angle = result
 
-                    # scale controller output to motor range
-                    current_control = scale_control_output(control_signal.value)
+                # convert values from encoder counts to radians, millimeters
+                shared_vars["angle"].value = raw_angle_to_rad(raw_angle)
+                shared_vars["position"].value = (x_position - 16220 / 2) / 27  # mm approx TODO actual math?! no way
 
-                    if current_control != last_sent_control:
-                        if (
-                            abs(degrees(angle.value)) <= 180 + MAX_ANGLE_DEG
-                            and abs(degrees(angle.value)) >= 180 - MAX_ANGLE_DEG
-                            and abs(position.value) <= MAX_XPOS_MM
-                        ):
-                            send_control_signal(
-                                ser, -current_control
-                            )  # negative because of wiring
-                        else:
-                            # Out of bounds: stop motor
-                            send_control_signal(ser, 0)
-                            last_sent_control = 0
-                        last_sent_control = current_control
+                # scale controller output to motor range
+                current_control = scale_control_output(shared_vars["control_signal"])
 
-    except KeyboardInterrupt:
-        logger.info("Stopped.")
-    finally:
-        send_control_signal(ser, 0)  # stop motor on exit
-        ser.close()
-
-
-def start_serial_backend(shared_vars):
-    p = multiprocessing.Process(
-        target=hardwareUpdateLoop,
-        args=(
-            shared_vars["position"],
-            shared_vars["angle"],
-            shared_vars["control_signal"],
-        ),
-    )
-    p.start()
-    return p
+                if current_control != last_sent_control: #TODO implement limit switches
+                    if (
+                        abs(degrees(shared_vars["angle"].value)) <= 180 + settings["max_angle_deg"]
+                        and abs(degrees(shared_vars["angle"].value)) >= 180 - settings["max_angle_deg"]
+                        and abs(shared_vars["position"].value) <= settings["max_xpos_mm"]
+                    ):
+                        send_control_signal(
+                            ser, -current_control
+                        )  # negative because of wiring
+                    else:
+                        # Out of bounds: stop motor
+                        send_control_signal(ser, 0)
+                        last_sent_control = 0
+                    last_sent_control: int = current_control

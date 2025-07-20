@@ -1,8 +1,5 @@
 from multiprocessing import Value
-from typing import Dict
-import multiprocessing
-
-from typing import Any
+from typing import Dict, Any
 
 def create_shared_vars() -> Dict[str, Any]:
     return {

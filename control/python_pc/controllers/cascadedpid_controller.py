@@ -25,13 +25,14 @@ import math
 import multiprocessing
 import time
 
+#TODO Use settings from main (how?)
 from utils.settings_manager import SettingsManager
 
 settings = SettingsManager()
 
 MAX_ANGLE_DEG = settings.get_max_angle_deg()
 MAX_XPOS_MM = settings.get_max_xpos_mm()
-
+#TODO Use settings from main (how?)
 
 def cascadedpid_controller(
     position,

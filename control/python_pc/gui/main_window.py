@@ -15,12 +15,10 @@ import importlib
 import logging
 import math
 import time
+from typing import Dict, Any
 import multiprocessing
 import sys
 
-from backends.linear_sim_backend import start_linear_simulation_backend
-from backends.nonlinear_sim_backend import start_nonlinear_simulation_backend
-from backends.serial_backend import start_serial_backend
 from PyQt5.QtCore import QEvent, QTimer
 from PyQt5.QtWidgets import (
     QAction,
@@ -55,35 +53,29 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings: SettingsManager | None = None):
+    def __init__(self, settings: SettingsManager, backend_manager: BackendManager, shared_vars: Dict[str, Any]):
         super().__init__()
-        self.settings = settings
+        self.settings_manager: SettingsManager = settings
+        self.backend_manager: BackendManager = backend_manager
+        self.shared_vars: Dict[str, Any] = shared_vars
         self.setWindowTitle("Modular Inverted Pendulum Control")
         self.setMinimumSize(800, 600)
         self.showMaximized()
 
-        self.init_backend_state()
+        self.init_backend_state() # move/rename?
         self.setup_ui()
         self.connect_signals()
         self.init_plot_update_timer()
 
-    def init_backend_state(self):
-        self.backend_manager = BackendManager()
+    def init_backend_state(self):   ###TODO rename, confusing (backend_manager...)
         self.plot_list = None
         self.plot_area = None
-        self.shared_vars = None
         self.sim_proc = None
         self.controller_proc = None
         self.swingup_proc = None
         self.controller_start_func = None
         self.controller_param_values = None
-        self.swingup_timer = None
         self.controller_param_fields = {}
-
-        self.led_style = lambda active: (
-            "background-color: #00cc00; border-radius: 7px;"
-            if active else "background-color: #003300; border-radius: 7px;"
-        )
 
     def setup_ui(self):
         central_widget = QWidget()
@@ -198,17 +190,6 @@ class MainWindow(QMainWindow):
         self.swingup_group.setContentLayout(swingup_layout)
         layout.addWidget(self.swingup_group)
 
-        self.swingup_led = QLabel()
-        self.swingup_led.setFixedSize(15, 15)
-        self.swingup_led.setStyleSheet(self.led_style(False))
-        self.controller_led = QLabel()
-        self.controller_led.setFixedSize(15, 15)
-        self.controller_led.setStyleSheet(self.led_style(False))
-        layout.addWidget(QLabel("Swing-Up Active:"))
-        layout.addWidget(self.swingup_led)
-        layout.addWidget(QLabel("Controller Active:"))
-        layout.addWidget(self.controller_led)
-
         layout.addStretch()
 
         widget = QWidget()
@@ -263,7 +244,7 @@ class MainWindow(QMainWindow):
         widget.setFixedWidth(250)
         return widget
 
-    def connect_signals(self):
+    def connect_signals(self): #TODO why is this its own function? should be in some sort of init()?
         self.start_button.clicked.connect(self.start_controller)
         self.stop_button.clicked.connect(self.stop_system)
         self.controller_dropdown.currentTextChanged.connect(self.display_param_fields)
@@ -282,7 +263,7 @@ class MainWindow(QMainWindow):
         self.visualizer.update()
 
     def open_settings_window(self):
-        settings_dialog = SettingsWindow(self.settings, self)
+        settings_dialog = SettingsWindow(self.settings_manager, self)
         settings_dialog.exec_()
 
     def connect_to_shared_vars(self, shared_vars):
@@ -338,47 +319,18 @@ class MainWindow(QMainWindow):
                 values[name] = widget.text()
         return values
 
-    def check_swingup_completion(self):
-        if self.swingup_proc and not self.swingup_proc.is_alive():
-            if self.swingup_timer is not None:
-                self.swingup_timer.stop()
-            self.swingup_proc.join()
-            self.swingup_proc = None
-            self.swingup_led.setStyleSheet(self.led_style(False))
-            if self.controller_start_func and self.controller_param_values is not None:
-                self.controller_proc = self.controller_start_func(
-                    self.shared_vars, *self.controller_param_values.values()
-                )
-                self.controller_led.setStyleSheet(self.led_style(True))
+    # def check_swingup_completion(self):
+    #     if self.swingup_proc and not self.swingup_proc.is_alive():
+    #         if self.swingup_timer is not None:
+    #             self.swingup_timer.stop()
+    #         self.swingup_proc.join()
+    #         self.swingup_proc = None
+    #         if self.controller_start_func and self.controller_param_values is not None:
+    #             self.controller_proc = self.controller_start_func(
+    #                 self.shared_vars, *self.controller_param_values.values()
+    #             )
 
-    def start_controller(self):
-        # system_choice = self.system_selector.currentText()
-        # sim_vars = self.get_sim_vars_from_ui()
-        # if self.settings is not None:
-        #     self.settings.update_sim_variables(sim_vars)
-
-        # if system_choice == "Linearized Simulation":
-        #     if self.sim_proc and self.sim_proc.is_alive():
-        #         logger.info("Simulation already running.")
-        #         return
-        #     logger.info("Starting simulation...")
-        #     self.shared_vars = create_shared_vars()
-        #     self.sim_proc = start_linear_simulation_backend(self.shared_vars, sim_vars)
-
-        # elif system_choice == "Nonlinear Simulation":
-        #     if self.sim_proc and self.sim_proc.is_alive():
-        #         logger.info("Simulation already running.")
-        #         return
-        #     logger.info("Starting nonlinear simulation...")
-        #     self.shared_vars = create_shared_vars()
-        #     self.sim_proc = start_nonlinear_simulation_backend(self.shared_vars, sim_vars)
-
-        # elif system_choice == "COM5":
-        #     logger.info("Connecting...")
-        #     self.shared_vars = create_shared_vars()
-        #     self.sim_proc = start_serial_backend(self.shared_vars)
-
-        # self.connect_to_shared_vars(self.shared_vars) # we don't do that here anymore, instead on hardware connect
+    def start_controller(self) -> None:
 
         controller_name = self.controller_dropdown.currentText()
         param_values = self.get_controller_param_values()
@@ -394,8 +346,6 @@ class MainWindow(QMainWindow):
                 self.controller_proc = start_func(
                     self.shared_vars, *param_values.values()
                 )
-                self.controller_led.setStyleSheet(self.led_style(True))
-                self.swingup_led.setStyleSheet(self.led_style(False))
 
         except Exception as e:
             logger.error("Failed to start controller '%s': %s", controller_name, e, exc_info=True)
@@ -409,7 +359,6 @@ class MainWindow(QMainWindow):
         if self.controller_proc and self.controller_proc.is_alive():
             self.controller_proc.terminate()
             self.controller_proc.join()
-        self.controller_led.setStyleSheet(self.led_style(False))
         self.sim_proc = None 
         # self.shared_vars = None # TODO maybe don't do that?
 

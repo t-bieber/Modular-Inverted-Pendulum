@@ -2,7 +2,7 @@ import json
 import os
 
 
-class SettingsManager: #TODO: decide whether to use @property on all getters
+class SettingsManager: #TODO: deal with input keys not existing, value validation...
     DEFAULT_SETTINGS = {
         "sim_variables": {
             "mass": 0.2,
@@ -42,6 +42,14 @@ class SettingsManager: #TODO: decide whether to use @property on all getters
                 json.dump(self.settings, f, indent=4)
         except Exception as e:
             print(f"[ERROR] Failed to save settings: {e}")
+
+    def export_for_backend(self) -> dict:
+        return {
+            "serial_port": self.get_serial_port(),
+            "baudrate": self.get_serial_baudrate(),
+            "max_angle_deg": self.get_max_angle_deg(),
+            "max_xpos_mm": self.get_max_xpos_mm(),
+        }
 
     # --- Simulation Variables ---
     def get_sim_variables(self):
