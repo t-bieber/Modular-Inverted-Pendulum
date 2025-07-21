@@ -25,6 +25,7 @@ class BackendManager:
         self.shared_vars: Dict[str, Any] = shared_vars
         self.settings_manager: SettingsManager = settings_manager
         self.hardware_process = None
+        self.hardware_stop_event = None
         self.sim_process = None
 
     def start_hardware(self) -> None:
@@ -33,19 +34,32 @@ class BackendManager:
             return
 
         settings_dict = self.settings_manager.export_for_backend()
+        self.hardware_stop_event = multiprocessing.Event()
 
         self.hardware_process = multiprocessing.Process(
-            target=hardwareUpdateLoop, args=(self.shared_vars, settings_dict)
+            target=hardwareUpdateLoop, args=(
+                                            self.shared_vars,
+                                            settings_dict,
+                                            self.hardware_stop_event
+                                            )
         )
         self.hardware_process.start()
         logger.info("Hardware backend started.")
 
-    # def stop_hardware(self) -> None: #TODO
-    #     if self.hardware_process:
-    #         self.hardware_process.terminate()
-    #         self.hardware_process.join()
-    #         self.hardware_process = None
-    #         logger.info("Hardware backend stopped.")
+    def stop_hardware(self) -> None:
+        if self.hardware_process:
+            if self.hardware_stop_event:
+                self.hardware_stop_event.set()
+            self.hardware_process.join(timeout=2)
+
+            if self.hardware_process.is_alive():
+                logger.warning("Graceful shutdown failed. Forcing termination.")
+                self.hardware_process.terminate()
+                self.hardware_process.join()
+
+            self.hardware_process = None
+            self.hardware_stop_event = None
+            logger.info("Hardware backend stopped.")
 
     # def start_linear_sim(self, sim_vars: dict) -> None:
     #     if self.sim_process is not None and self.sim_process.is_alive():

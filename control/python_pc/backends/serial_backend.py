@@ -69,7 +69,7 @@ def send_control_signal(ser, control_value) -> None:
     ser.write(packet)
 
 
-def hardwareUpdateLoop(shared_vars, settings) -> None:
+def hardwareUpdateLoop(shared_vars, settings, stop_event) -> None:
     try:
         ser = serial.Serial(settings["serial_port"], settings["baudrate"], timeout=0)
         logger.info("Connected to %s at %d baud.",
@@ -80,7 +80,7 @@ def hardwareUpdateLoop(shared_vars, settings) -> None:
 
     last_sent_control = 0
 
-    while True:
+    while not stop_event.is_set():
         data = ser.read_all()
         if data is not None and len(data) >= 5:
             result: tuple[int, int] | None = find_last_valid_packet(data)
@@ -111,3 +111,4 @@ def hardwareUpdateLoop(shared_vars, settings) -> None:
                         send_control_signal(ser, 0)
                         last_sent_control = 0
                     last_sent_control: int = current_control
+    logger.info("Shutting down hardware backend.")
