@@ -214,7 +214,7 @@ class MainWindow(QMainWindow):
         self.plot_area = DropPlotArea(self.available_plots, self.shared_vars)
         layout.addWidget(self.plot_area, 3)
 
-        self.visualizer = PendulumVisualizer()
+        self.visualizer = PendulumVisualizer(self.shared_vars)
         self.visualizer.setStyleSheet("background-color: #222; border: 1px solid #444;")
         layout.addWidget(self.visualizer, 1)
 
@@ -343,6 +343,7 @@ class MainWindow(QMainWindow):
         self.sim_proc = None 
         # self.shared_vars = None # TODO maybe don't do that?
 
+    # THIS WILL NOT WORK BECAUSE SHARED VARS MANAGEMENT CHANGED
     def connect_hardware(self) -> None:
         sv = self.backend_manager.start_hardware()
         self.connect_to_shared_vars(sv)
@@ -351,13 +352,13 @@ class MainWindow(QMainWindow):
         self.backend_manager.stop_hardware()
 
     def start_linear_sim(self) -> None:
-        self.backend_manager.start_linear_sim()
+        self.backend_manager.start_linear_sim(self.get_sim_vars_from_ui())
 
     def stop_linear_sim(self) -> None:
         self.backend_manager.stop_linear_sim()
 
     def start_nonlinear_sim(self) -> None:
-        self.backend_manager.start_nonlinear_sim()
+        self.backend_manager.start_nonlinear_sim(self.get_sim_vars_from_ui())
 
     def stop_nonlinear_sim(self) -> None:
         self.backend_manager.stop_nonlinear_sim()
@@ -370,3 +371,4 @@ class MainWindow(QMainWindow):
             "friction": self.sim_friction_field.value(),
             "damping": self.sim_damping_field.value(),
         }
+    
