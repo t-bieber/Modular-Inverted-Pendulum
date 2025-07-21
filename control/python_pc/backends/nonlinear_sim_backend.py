@@ -20,7 +20,7 @@ import numpy as np
 # instances.
 
 
-def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
+def nonlinear_physics_loop(shared_vars, sim_vars, stop_event):
     """
     Nonlinear physics loop for the cart-pendulum system.
     - θ = 0 points straight down
@@ -28,6 +28,11 @@ def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
     - x > 0 means cart moves right
     - θ̇ > 0 means pendulum rotates counterclockwise
     """
+
+    # unpack shared vars
+    position = shared_vars["position"]
+    angle = shared_vars["angle"]
+    control_signal = shared_vars["control_signal"]
 
     # Physical parameters
     m_cart = sim_vars["cart_mass"]
@@ -45,7 +50,7 @@ def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
     theta = 0 + np.random.uniform(-0.2, 0.2)  # upright + offset
     theta_dot = 0 + np.random.uniform(-0.1, 0.1)
 
-    while True:
+    while not stop_event.is_set():
         start_time = time.perf_counter()
         u = control_signal.value  # Motor force
 
@@ -85,19 +90,3 @@ def nonlinear_physics_loop(position, angle, control_signal, sim_vars):
         # Sleep to maintain real-time simulation
         elapsed = time.perf_counter() - start_time
         time.sleep(max(0, dt - elapsed))
-
-
-def start_nonlinear_simulation_backend(shared_vars, sim_vars):
-    """Launch ``nonlinear_physics_loop`` in a new ``Process`` and return it."""
-    p = multiprocessing.Process(
-        target=nonlinear_physics_loop,
-        args=(
-            shared_vars["position"],
-            shared_vars["angle"],
-            shared_vars["control_signal"],
-            sim_vars,
-        ),
-    )
-    p.start()
-    # Caller can terminate or join this process as needed
-    return p

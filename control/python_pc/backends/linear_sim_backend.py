@@ -13,9 +13,7 @@ https://ctms.engin.umich.edu/CTMS/?example=InvertedPendulum&section=SystemModeli
 """
 
 import math
-import multiprocessing
 import time
-
 import numpy as np
 
 # NumPy is used for matrix math to integrate the linear state-space model.
@@ -23,9 +21,14 @@ import numpy as np
 # while sharing state via ``Value`` objects.
 
 
-def simulated_physics_loop(position, angle, control_signal, sim_vars):
+def linear_physics_loop(shared_vars, sim_vars, stop_event):
     """Physics loop running in a separate process for the linearized model."""
 
+    # Unpack shared variables
+    position = shared_vars["position"]
+    angle = shared_vars["angle"]
+    control_signal = shared_vars["control_signal"]
+    
     # Physical parameters
     m_cart = sim_vars["cart_mass"]
     m_pend = sim_vars["pendulum_mass"]
@@ -79,7 +82,7 @@ def simulated_physics_loop(position, angle, control_signal, sim_vars):
         ]
     )
 
-    while True:
+    while not stop_event.is_set():
         start = time.time()
 
         u = control_signal.value  # Control force
@@ -98,19 +101,4 @@ def simulated_physics_loop(position, angle, control_signal, sim_vars):
         # Real-time sync
         elapsed = time.time() - start
         time.sleep(max(0, dt - elapsed))
-
-
-def start_linear_simulation_backend(shared_vars, sim_vars):
-    """Spawn the physics loop process and return the ``Process`` object."""
-    p = multiprocessing.Process(
-        target=simulated_physics_loop,
-        args=(
-            shared_vars["position"],
-            shared_vars["angle"],
-            shared_vars["control_signal"],
-            sim_vars,
-        ),
-    )
-    p.start()
-    # Return the process object so the caller can manage its lifecycle
-    return p
+    

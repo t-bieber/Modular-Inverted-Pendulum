@@ -11,9 +11,8 @@ import multiprocessing
 from typing import Any, Dict
 
 from backends.serial_backend import hardwareUpdateLoop
+from backends.linear_sim_backend import linear_physics_loop
 from utils.settings_manager import SettingsManager
-
-# from backends.linear_sim_backend import simulated_physics_loop
 # from backends.nonlinear_sim_backend import nonlinear_physics_loop
 
 
@@ -27,6 +26,7 @@ class BackendManager:
         self.hardware_process = None
         self.hardware_stop_event = None
         self.sim_process = None
+        self.sim_stop_event = None
 
     def start_hardware(self) -> None:
         if self.hardware_process is not None and self.hardware_process.is_alive():
@@ -61,42 +61,60 @@ class BackendManager:
             self.hardware_stop_event = None
             logger.info("Hardware backend stopped.")
 
-    # def start_linear_sim(self, sim_vars: dict) -> None:
-    #     if self.sim_process is not None and self.sim_process.is_alive():
-    #         logger.warning("Simulation already running.")
-    #         return
-    #     self.sim_process = multiprocessing.Process(
-    #         target=nonlinear_physics_loop, args=  (
-    #                                               self.shared_vars["position"],
-    #                                               self.shared_vars["angle"],
-    #                                               self.shared_vars["control_signal"],
-    #                                               sim_vars
-    #                                               )
-    #     )
-    #     self.sim_process.start()
-    #     logger.info("Linear simulation started.")
+    def start_linear_sim(self, sim_vars: dict) -> None:
+        if self.sim_process is not None and self.sim_process.is_alive():
+            logger.warning("Simulation already running.")
+            return
+        
+        self.sim_stop_event = multiprocessing.Event()
+        self.sim_process = multiprocessing.Process(
+            target=linear_physics_loop,
+            args=  (self.shared_vars, sim_vars, self.sim_stop_event)
+        )
+        self.sim_process.start()
+        logger.info("Linear simulation started.")
 
-    # def stop_linear_sim(self) -> None:
-    #     if self.sim_process:
-    #         self.sim_process.terminate()
-    #         self.sim_process.join()
-    #         self.sim_process = None
-    #         logger.info("Linear simulation stopped.")
+    def stop_linear_sim(self) -> None:
+        if self.sim_process:
+            if self.sim_stop_event:
+                self.sim_stop_event.set()
+            self.sim_process.join(timeout=2)
 
-    # def start_nonlinear_sim(self, sim_vars: dict) -> None:
-    #     if self.sim_process is not None and self.sim_process.is_alive():
-    #         logger.warning("Simulation already running.")
-    #         return
-    #     self.sim_process = multiprocessing.Process(
-    #         target=simulated_physics_loop, args=(self.shared_vars["position"], self.shared_vars["angle"],
-    #                                               self.shared_vars["control_signal"], sim_vars)
-    #     )
-    #     self.sim_process.start()
-    #     logger.info("Linear simulation started.")
+            if self.sim_process.is_alive():
+                logger.warning("Simulation did not shut down cleanly. Terminating.")
+                self.sim_process.terminate()
+                self.sim_process.join()
 
-    # def stop_nonlinear_sim(self) -> None:
-    #     if self.sim_process:
-    #         self.sim_process.terminate()
-    #         self.sim_process.join()
-    #         self.sim_process = None
-    #         logger.info("Linear simulation stopped.")
+            self.sim_process = None
+            self.sim_stop_event = None
+            logger.info("Linear simulation stopped.")
+
+    def start_nonlinear_sim(self, sim_vars: dict) -> None:
+        if self.sim_process is not None and self.sim_process.is_alive():
+            logger.warning("Simulation already running.")
+            return
+
+        from backends.nonlinear_sim_backend import nonlinear_physics_loop
+        self.sim_stop_event = multiprocessing.Event()
+
+        self.sim_process = multiprocessing.Process(
+            target=nonlinear_physics_loop,
+            args=(self.shared_vars, sim_vars, self.sim_stop_event),
+        )
+        self.sim_process.start()
+        logger.info("Nonlinear simulation started.")
+
+    def stop_nonlinear_sim(self) -> None:
+        if self.sim_process:
+            if self.sim_stop_event:
+                self.sim_stop_event.set()
+            self.sim_process.join(timeout=2)
+
+            if self.sim_process.is_alive():
+                logger.warning("Simulation did not shut down cleanly. Terminating.")
+                self.sim_process.terminate()
+                self.sim_process.join()
+
+            self.sim_process = None
+            self.sim_stop_event = None
+            logger.info("Nonlinear simulation stopped.")
