@@ -12,8 +12,8 @@ from typing import Any, Dict
 
 from backends.serial_backend import hardwareUpdateLoop
 from backends.linear_sim_backend import linear_physics_loop
+from backends.nonlinear_sim_backend import nonlinear_physics_loop
 from utils.settings_manager import SettingsManager
-# from backends.nonlinear_sim_backend import nonlinear_physics_loop
 
 
 logger = logging.getLogger(__name__)
@@ -94,7 +94,6 @@ class BackendManager:
             logger.warning("Simulation already running.")
             return
 
-        from backends.nonlinear_sim_backend import nonlinear_physics_loop
         self.sim_stop_event = multiprocessing.Event()
 
         self.sim_process = multiprocessing.Process(
