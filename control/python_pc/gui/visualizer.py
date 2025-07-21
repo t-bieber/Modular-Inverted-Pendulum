@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QWidget
 class PendulumVisualizer(QWidget):
     """Simple QWidget that draws the pendulum and cart."""
 
-    def __init__(self, shared_vars=None):
+    def __init__(self, shared_vars):
         super().__init__()
         self.shared_vars = shared_vars  # Set once at initialization
         # Dimensions for drawing the cart and pendulum
@@ -29,15 +29,10 @@ class PendulumVisualizer(QWidget):
         self.pendulum_color = QColor(220, 220, 220)  # Light gray
         self.bob_color = QColor(200, 50, 50)  # Red
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0): # a0 is the QPaintEvent
         # Called by Qt whenever the widget needs to be redrawn
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-
-        if not self.shared_vars:
-            # Draw placeholder when no data
-            painter.drawText(self.rect(), Qt.AlignCenter, "No pendulum data")
-            return
 
         try:
             # Get current values (safe access)
@@ -66,7 +61,7 @@ class PendulumVisualizer(QWidget):
             self.cart_height,
         )
         painter.setBrush(QBrush(self.cart_color))
-        painter.setPen(QPen(Qt.black, 1))
+        painter.setPen(QPen(QColor("black"), 1))
         painter.drawRect(cart_rect)
 
         # Draw pendulum
