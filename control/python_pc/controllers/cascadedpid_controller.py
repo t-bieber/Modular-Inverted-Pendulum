@@ -67,7 +67,7 @@ def cascadedpid_controller(
         loop_start = time.perf_counter()
 
         # --- Outer PID every 5 loops ---
-        if loop_count % 5 == 0:
+        if loop_count >= 5:
             pos_error = pos_setpoint - position.value
             pos_integral += pos_error * (dt * 5)
             pos_derivative = (pos_error - pos_prev_error) / (dt * 5)
@@ -77,6 +77,7 @@ def cascadedpid_controller(
                 + outer_Kd * pos_derivative
             )
             pos_prev_error = pos_error
+            loop_count = 0
 
         # Convert desired angle offset to radians around vertical (pi)
         scaled_desired_angle = (
@@ -120,7 +121,7 @@ def cascadedpid_controller(
 def start_cascadedpid_controller(
     shared_vars, outer_Kp, outer_Ki, outer_Kd, inner_Kp, inner_Ki, inner_Kd
 ):
-    shared_vars["controller_active"] = True
+    shared_vars["controller_active"].value = True
     """Helper to spawn ``cascadedpid_controller`` as a separate process."""
     p = multiprocessing.Process(
         target=cascadedpid_controller,
