@@ -257,11 +257,11 @@ class MainWindow(QMainWindow):
         settings_dialog = SettingsWindow(self.settings_manager, self)
         settings_dialog.exec_()
 
-    def connect_to_shared_vars(self, shared_vars):
-        self.shared_vars = shared_vars
-        self.visualizer.shared_vars = shared_vars
-        if self.plot_area:
-            self.plot_area.shared_vars = shared_vars
+    # def connect_to_shared_vars(self, shared_vars):
+    #     self.shared_vars = shared_vars
+    #     self.visualizer.shared_vars = shared_vars
+    #     if self.plot_area:
+    #         self.plot_area.shared_vars = shared_vars
 
     def changeEvent(self, event: QEvent):  # type: ignore[override]
         if event.type() == QEvent.WindowStateChange:  # type: ignore[attr-defined]
@@ -333,7 +333,7 @@ class MainWindow(QMainWindow):
     def stop_system(self) -> None:
         logger.info("Stopping controller...")
         if self.shared_vars is not None:
-            self.shared_vars["controller_active"] = False
+            self.shared_vars["controller_active"].value = False
             logger.info("controller_active = false")
             # sleep 20 ms to make sure controller output is set to 0 before terminating
             time.sleep(20/1000)
@@ -343,10 +343,8 @@ class MainWindow(QMainWindow):
         self.sim_proc = None 
         # self.shared_vars = None # TODO maybe don't do that?
 
-    # THIS WILL NOT WORK BECAUSE SHARED VARS MANAGEMENT CHANGED
     def connect_hardware(self) -> None:
-        sv = self.backend_manager.start_hardware()
-        self.connect_to_shared_vars(sv)
+        self.backend_manager.start_hardware()
 
     def disconnect_hardware(self) -> None:
         self.backend_manager.stop_hardware()

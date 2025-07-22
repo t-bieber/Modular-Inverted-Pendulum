@@ -123,7 +123,7 @@ def start_cascadedpid_controller(
 ):
     shared_vars["controller_active"].value = True
     """Helper to spawn ``cascadedpid_controller`` as a separate process."""
-    p = multiprocessing.Process(
+    p = multiprocessing.Process( #TODO: pass shared_vars instead of singular attributes?
         target=cascadedpid_controller,
         args=(
             shared_vars["position"],

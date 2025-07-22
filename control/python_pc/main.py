@@ -1,8 +1,7 @@
 """
 main.py
 
-Entry point for the desktop application. Starts the Qt GUI and sets up multiprocessing
-for cross-platform compatibility.
+Entry point for the desktop application. Starts the Qt GUI and sets up multiprocessing.
 
 Project: https://github.com/t-bieber/Modular-Inverted-Pendulum
 Author: Tom Bieber
